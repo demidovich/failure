@@ -57,7 +57,5 @@ func (e basic) Format(s fmt.State, verb rune) {
 		fallthrough
 	case 's':
 		_, _ = io.WriteString(s, e.message)
-	case 'q':
-		fmt.Fprintf(s, "%q", e.message)
 	}
 }

@@ -7,11 +7,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGuessedAppRoot(t *testing.T) {
+func TestDirectoryWithExistingFile(t *testing.T) {
 	pwd, _ := os.Getwd()
-	guessed := guessedAppRoot()
+	found := directoryWithFile("go.mod")
 
-	assert.Equal(t, pwd, guessed)
+	assert.Equal(t, pwd, found)
+}
+
+func TestDirectoryWithMissingFile(t *testing.T) {
+	found := directoryWithFile("missing.file")
+
+	assert.Equal(t, "", found)
 }
 
 func TestSetAppRoot(t *testing.T) {

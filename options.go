@@ -24,14 +24,14 @@ const (
 
 func init() {
 	SetAppRoot(
-		guessedAppRoot(),
+		directoryWithFile("go.mod"),
 	)
 }
 
-func guessedAppRoot() string {
+func directoryWithFile(file string) string {
 	pwd, _ := os.Getwd()
 	for {
-		if _, err := os.Stat(pwd + "/go.mod"); err == nil {
+		if _, err := os.Stat(pwd + "/" + file); err == nil {
 			return pwd
 		}
 		pwd = filepath.Dir(pwd)
