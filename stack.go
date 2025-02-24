@@ -7,12 +7,17 @@ import (
 )
 
 func newStack(skipFrames int) *runtime.Frames {
-	var stack = make([]uintptr, stackSize)
+	if stackMode == StackModeNone {
+		return nil
+	}
 
-	depth := runtime.Callers(skipFrames, stack[:])
-	stack = stack[:depth]
+	const depth = 32
+	var pcs = make([]uintptr, depth)
 
-	return runtime.CallersFrames(stack)
+	size := runtime.Callers(skipFrames, pcs[:])
+	pcs = pcs[:size]
+
+	return runtime.CallersFrames(pcs)
 }
 
 func stackToString(frames *runtime.Frames) string {

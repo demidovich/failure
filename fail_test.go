@@ -8,41 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func foo() basic {
+func foo() error {
 	return New("foo")
 }
 
-func bar() basic {
+func bar() error {
 	return foo()
-}
-
-func TestError(t *testing.T) {
-	err := New("foo")
-	assert.Equal(t, "foo", err.Error())
-}
-
-func TestStackNone(t *testing.T) {
-	stackMode = StackModeNone
-	err := bar()
-
-	assert.Nil(t, err.Stack())
-}
-
-func TestStack(t *testing.T) {
-	stackMode = StackModeApplication
-
-	err := bar()
-	stack := err.Stack()
-
-	frame1, _ := stack.Next()
-	assert.Equal(t, "github.com/demidovich/fail.foo", frame1.Function)
-	assert.Equal(t, "fail_test.go", relativePath(frame1.File))
-	assert.Equal(t, 12, frame1.Line)
-
-	frame2, _ := stack.Next()
-	assert.Equal(t, "github.com/demidovich/fail.bar", frame2.Function)
-	assert.Equal(t, "fail_test.go", relativePath(frame2.File))
-	assert.Equal(t, 16, frame2.Line)
 }
 
 func TestFormatStackModeNone(t *testing.T) {
@@ -82,7 +53,7 @@ func TestFormatStackModeApplication(t *testing.T) {
 		"Stack Trace:",
 		"fail_test.go:12 (github.com/demidovich/fail.foo)",
 		"fail_test.go:16 (github.com/demidovich/fail.bar)",
-		"fail_test.go:77 (github.com/demidovich/fail.TestFormatStackModeApplication)",
+		"fail_test.go:48 (github.com/demidovich/fail.TestFormatStackModeApplication)",
 	}, "\n")
 
 	assert.Equal(t, expected, msg)
@@ -100,7 +71,7 @@ func TestFormatStackModeFull(t *testing.T) {
 		"Stack Trace:",
 		"fail_test.go:12 (github.com/demidovich/fail.foo)",
 		"fail_test.go:16 (github.com/demidovich/fail.bar)",
-		"fail_test.go:95 (github.com/demidovich/fail.TestFormatStackModeFull)",
+		"fail_test.go:66 (github.com/demidovich/fail.TestFormatStackModeFull)",
 	}, "\n")
 
 	assert.Contains(t, msg, prefix)
@@ -113,6 +84,7 @@ func TestFormatVerbs(t *testing.T) {
 	}{
 		{"foo", "%v"},
 		{"foo", "%s"},
+		{"foo", "%q"},
 	}
 
 	SetStackMode(StackModeFull)
@@ -133,4 +105,14 @@ func TestFormatS(t *testing.T) {
 	msg := fmt.Sprintf("%s", err)
 
 	assert.Equal(t, "foo", msg)
+}
+
+func TestNew(t *testing.T) {
+	err := New("foo")
+	assert.Equal(t, "foo", err.Error())
+}
+
+func TestNewf(t *testing.T) {
+	err := Newf("foo %s", "bar")
+	assert.Equal(t, "foo bar", err.Error())
 }

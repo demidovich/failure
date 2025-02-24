@@ -8,7 +8,6 @@ import (
 
 var (
 	appRoot        string
-	stackSize      int       = 32
 	stackMode      StackMode = StackModeApplication
 	stackLogPrefix string    = "-> "
 )
