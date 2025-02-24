@@ -27,8 +27,7 @@ nbproject
 *.test
 
 # Coverage test
-cover.out
-cover.html
+coverage.txt
 
 # Modules
 vendor
