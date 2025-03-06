@@ -1,44 +1,53 @@
 package fail
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
 )
 
-type basic struct {
+func As(err error, target any) bool {
+	return errors.As(err, target)
+}
+
+func Is(err, target error) bool {
+	return errors.Is(err, target)
+}
+
+type fail struct {
 	message string
 	stack   *runtime.Frames
 }
 
 func New(message string) error {
-	return &basic{
+	return &fail{
 		message: message,
 		stack:   newStack(3),
 	}
 }
 
-func Newf(format string, args ...interface{}) error {
-	return &basic{
+func Newf(format string, args ...any) error {
+	return &fail{
 		message: fmt.Sprintf(format, args...),
 		stack:   newStack(3),
 	}
 }
 
-func (b *basic) Error() string {
+func (b *fail) Error() string {
 	return b.message
 }
 
-// func (b basic) Caller() runtime.Frame {
+// func (b fail) Caller() runtime.Frame {
 // 	frame, _ := b.stack.Next()
 // 	return frame
 // }
 
-func (b *basic) Format(s fmt.State, verb rune) {
+func (b *fail) Format(s fmt.State, verb rune) {
 	format(s, verb, b.message, b.stack)
 }
 
-type wrapped struct {
+type wrappedFail struct {
 	message string
 	stack   *runtime.Frames
 	cause   error
@@ -49,41 +58,42 @@ func Wrap(err error, message string) error {
 		return nil
 	}
 
-	return &wrapped{
+	return &wrappedFail{
 		message: message,
 		stack:   newStack(3),
 		cause:   err,
 	}
 }
 
-func Wrapf(err error, format string, args ...interface{}) error {
+func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}
 
-	return &wrapped{
+	return &wrappedFail{
 		message: fmt.Sprintf(format, args...),
 		stack:   newStack(3),
 		cause:   err,
 	}
 }
 
-func (w *wrapped) Error() string {
+func (w *wrappedFail) Error() string {
 	return w.message + ": " + w.cause.Error()
 }
 
-func (w *wrapped) Format(s fmt.State, verb rune) {
+func (w *wrappedFail) Format(s fmt.State, verb rune) {
 	format(s, verb, w.Error(), w.stack)
 }
 
-func (w *wrapped) Cause() error {
+func (w *wrappedFail) Cause() error {
 	return w.cause
 }
 
-func (w *wrapped) Unwrap() error {
+func (w *wrappedFail) Unwrap() error {
 	return w.cause
 }
 
+// Universal formatter for wrapped and unwrapped errors
 func format(s fmt.State, verb rune, message string, stack *runtime.Frames) {
 	switch verb {
 	case 'v':
