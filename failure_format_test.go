@@ -27,7 +27,8 @@ func TestFormatStackModeNone(t *testing.T) {
 
 func TestFormatStackModeCaller(t *testing.T) {
 	SetStackMode(StackModeCaller)
-	SetStackLogPrefix("")
+	SetStackRootDir(".")
+	SetStackPrefix("")
 
 	err := bar()
 	msg := fmt.Sprintf("%+v", err)
@@ -41,9 +42,10 @@ func TestFormatStackModeCaller(t *testing.T) {
 	assert.Equal(t, expected, msg)
 }
 
-func TestFormatStackModeApplication(t *testing.T) {
-	SetStackMode(StackModeApplication)
-	SetStackLogPrefix("")
+func TestFormatStackModeRoot(t *testing.T) {
+	SetStackMode(StackModeRoot)
+	SetStackRootDir(".")
+	SetStackPrefix("")
 
 	err := bar()
 	msg := fmt.Sprintf("%+v", err)
@@ -53,7 +55,7 @@ func TestFormatStackModeApplication(t *testing.T) {
 		"Stack Trace:",
 		"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
 		"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
-		"failure_format_test.go:48 (github.com/demidovich/failure.TestFormatStackModeApplication)",
+		"failure_format_test.go:50 (github.com/demidovich/failure.TestFormatStackModeRoot)",
 	}, "\n")
 
 	assert.Equal(t, expected, msg)
@@ -61,7 +63,7 @@ func TestFormatStackModeApplication(t *testing.T) {
 
 func TestFormatStackModeFull(t *testing.T) {
 	SetStackMode(StackModeFull)
-	SetStackLogPrefix("")
+	SetStackPrefix("")
 
 	err := bar()
 	msg := fmt.Sprintf("%+v", err)
@@ -71,7 +73,7 @@ func TestFormatStackModeFull(t *testing.T) {
 		"Stack Trace:",
 		"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
 		"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
-		"failure_format_test.go:66 (github.com/demidovich/failure.TestFormatStackModeFull)",
+		"failure_format_test.go:68 (github.com/demidovich/failure.TestFormatStackModeFull)",
 	}, "\n")
 
 	assert.Contains(t, msg, prefix)

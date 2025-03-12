@@ -1,30 +1,16 @@
 package failure
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDirectoryWithExistingFile(t *testing.T) {
-	pwd, _ := os.Getwd()
-	found := directoryWithFile("go.mod")
-
-	assert.Equal(t, pwd, found)
-}
-
-func TestDirectoryWithMissingFile(t *testing.T) {
-	found := directoryWithFile("missing.file")
-
-	assert.Equal(t, "", found)
-}
-
-func TestSetAppRoot(t *testing.T) {
+func TestSetStackRootDir(t *testing.T) {
 	value := "/tmp"
-	SetAppRoot(value)
+	SetStackRootDir(value)
 
-	assert.Equal(t, value+"/", appRoot)
+	assert.Equal(t, value+"/", stackRootDir)
 }
 
 func TestSetStackMode(t *testing.T) {
@@ -34,9 +20,9 @@ func TestSetStackMode(t *testing.T) {
 	assert.Equal(t, value, stackMode)
 }
 
-func TestSetStackLogPrefix(t *testing.T) {
+func TestSetStackPrefix(t *testing.T) {
 	value := "----->"
-	SetStackLogPrefix(value)
+	SetStackPrefix(value)
 
-	assert.Equal(t, value, stackLogPrefix)
+	assert.Equal(t, value, stackPrefix)
 }
