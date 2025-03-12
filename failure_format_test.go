@@ -1,4 +1,4 @@
-package fail
+package failure
 
 import (
 	"fmt"
@@ -35,7 +35,7 @@ func TestFormatStackModeCaller(t *testing.T) {
 	expected := strings.Join([]string{
 		"foo\n",
 		"Caller:",
-		"fail_format_test.go:12 (github.com/demidovich/fail.foo)",
+		"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
 	}, "\n")
 
 	assert.Equal(t, expected, msg)
@@ -51,9 +51,9 @@ func TestFormatStackModeApplication(t *testing.T) {
 	expected := strings.Join([]string{
 		"foo\n",
 		"Stack Trace:",
-		"fail_format_test.go:12 (github.com/demidovich/fail.foo)",
-		"fail_format_test.go:16 (github.com/demidovich/fail.bar)",
-		"fail_format_test.go:48 (github.com/demidovich/fail.TestFormatStackModeApplication)",
+		"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
+		"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
+		"failure_format_test.go:48 (github.com/demidovich/failure.TestFormatStackModeApplication)",
 	}, "\n")
 
 	assert.Equal(t, expected, msg)
@@ -69,9 +69,9 @@ func TestFormatStackModeFull(t *testing.T) {
 	prefix := strings.Join([]string{
 		"foo\n",
 		"Stack Trace:",
-		"fail_format_test.go:12 (github.com/demidovich/fail.foo)",
-		"fail_format_test.go:16 (github.com/demidovich/fail.bar)",
-		"fail_format_test.go:66 (github.com/demidovich/fail.TestFormatStackModeFull)",
+		"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
+		"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
+		"failure_format_test.go:66 (github.com/demidovich/failure.TestFormatStackModeFull)",
 	}, "\n")
 
 	assert.Contains(t, msg, prefix)

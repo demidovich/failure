@@ -1,4 +1,4 @@
-module github.com/demidovich/fail
+module github.com/demidovich/failure
 
 go 1.18
 

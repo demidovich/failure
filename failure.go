@@ -1,4 +1,4 @@
-package fail
+package failure
 
 import (
 	"errors"
@@ -15,39 +15,39 @@ func Is(err, target error) bool {
 	return errors.Is(err, target)
 }
 
-type fail struct {
+type failure struct {
 	message string
 	stack   *runtime.Frames
 }
 
 func New(message string) error {
-	return &fail{
+	return &failure{
 		message: message,
 		stack:   newStack(3),
 	}
 }
 
 func Newf(format string, args ...any) error {
-	return &fail{
+	return &failure{
 		message: fmt.Sprintf(format, args...),
 		stack:   newStack(3),
 	}
 }
 
-func (b *fail) Error() string {
+func (b *failure) Error() string {
 	return b.message
 }
 
-// func (b fail) Caller() runtime.Frame {
+// func (b failure) Caller() runtime.Frame {
 // 	frame, _ := b.stack.Next()
 // 	return frame
 // }
 
-func (b *fail) Format(s fmt.State, verb rune) {
+func (b *failure) Format(s fmt.State, verb rune) {
 	format(s, verb, b.message, b.stack)
 }
 
-type wrappedFail struct {
+type wrappedFailure struct {
 	message string
 	stack   *runtime.Frames
 	cause   error
@@ -58,7 +58,7 @@ func Wrap(err error, message string) error {
 		return nil
 	}
 
-	return &wrappedFail{
+	return &wrappedFailure{
 		message: message,
 		stack:   newStack(3),
 		cause:   err,
@@ -70,26 +70,26 @@ func Wrapf(err error, format string, args ...any) error {
 		return nil
 	}
 
-	return &wrappedFail{
+	return &wrappedFailure{
 		message: fmt.Sprintf(format, args...),
 		stack:   newStack(3),
 		cause:   err,
 	}
 }
 
-func (w *wrappedFail) Error() string {
+func (w *wrappedFailure) Error() string {
 	return w.message + ": " + w.cause.Error()
 }
 
-func (w *wrappedFail) Format(s fmt.State, verb rune) {
+func (w *wrappedFailure) Format(s fmt.State, verb rune) {
 	format(s, verb, w.Error(), w.stack)
 }
 
-func (w *wrappedFail) Cause() error {
+func (w *wrappedFailure) Cause() error {
 	return w.cause
 }
 
-func (w *wrappedFail) Unwrap() error {
+func (w *wrappedFailure) Unwrap() error {
 	return w.cause
 }
 
