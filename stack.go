@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+var stackFrameFormatter = func(f runtime.Frame) string {
+	return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, relativePath(f.File), f.Line, f.Function)
+}
+
+func SetStackFrameFormatter(f func(f runtime.Frame) string) {
+	stackFrameFormatter = f
+}
+
 func newStack(skipFrames int) *runtime.Frames {
 	if stackMode == StackModeNone {
 		return nil
@@ -20,6 +28,27 @@ func newStack(skipFrames int) *runtime.Frames {
 	return runtime.CallersFrames(pcs)
 }
 
+func stackToSlice(frames *runtime.Frames) []string {
+	result := make([]string, 0, 32)
+	for {
+		frame, more := frames.Next()
+		if stackMode == StackModeRoot && isExternalFile(frame.File) {
+			break
+		}
+		result = append(
+			result,
+			stackFrameFormatter(frame),
+		)
+		if stackMode == StackModeCaller {
+			break
+		}
+		if !more {
+			break
+		}
+	}
+	return result
+}
+
 func stackToString(frames *runtime.Frames) string {
 	b := strings.Builder{}
 	for {
@@ -27,9 +56,8 @@ func stackToString(frames *runtime.Frames) string {
 		if stackMode == StackModeRoot && isExternalFile(frame.File) {
 			break
 		}
-		b.WriteString(
-			fmt.Sprintf("\n%s%s:%d (%s)", stackPrefix, relativePath(frame.File), frame.Line, frame.Function),
-		)
+		b.WriteString("\n")
+		b.WriteString(stackFrameFormatter(frame))
 		if stackMode == StackModeCaller {
 			break
 		}

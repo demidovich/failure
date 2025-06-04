@@ -18,6 +18,7 @@ func Is(err, target error) bool {
 type failure struct {
 	message string
 	stack   *runtime.Frames
+	trace   []string
 }
 
 func New(message string) error {
@@ -34,17 +35,19 @@ func Newf(format string, args ...any) error {
 	}
 }
 
-func (b *failure) Error() string {
-	return b.message
+func (f *failure) Error() string {
+	return f.message
 }
 
-// func (b failure) Caller() runtime.Frame {
-// 	frame, _ := b.stack.Next()
-// 	return frame
-// }
+func (f *failure) Trace() []string {
+	if len(f.trace) == 0 {
+		f.trace = stackToSlice(f.stack)
+	}
+	return f.trace
+}
 
-func (b *failure) Format(s fmt.State, verb rune) {
-	format(s, verb, b.message, b.stack)
+func (f *failure) Format(s fmt.State, verb rune) {
+	format(s, verb, f.message, f.stack)
 }
 
 type wrappedFailure struct {
