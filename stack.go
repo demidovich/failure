@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
-var stackFrameFormatter = func(f runtime.Frame) string {
+var stackFormatter = func(f runtime.Frame) string {
 	return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, relativePath(f.File), f.Line, f.Function)
 }
 
-func SetStackFrameFormatter(f func(f runtime.Frame) string) {
-	stackFrameFormatter = f
+func SetStackFormatter(f func(f runtime.Frame) string) {
+	stackFormatter = f
 }
 
 func newStack(skipFrames int) *runtime.Frames {
@@ -28,7 +28,7 @@ func newStack(skipFrames int) *runtime.Frames {
 	return runtime.CallersFrames(pcs)
 }
 
-func stackToSlice(frames *runtime.Frames) []string {
+func stackSlice(frames *runtime.Frames) []string {
 	result := make([]string, 0, 32)
 	for {
 		frame, more := frames.Next()
@@ -37,7 +37,7 @@ func stackToSlice(frames *runtime.Frames) []string {
 		}
 		result = append(
 			result,
-			stackFrameFormatter(frame),
+			stackFormatter(frame),
 		)
 		if stackMode == StackModeCaller {
 			break
@@ -49,7 +49,7 @@ func stackToSlice(frames *runtime.Frames) []string {
 	return result
 }
 
-func stackToString(frames *runtime.Frames) string {
+func stackString(frames *runtime.Frames) string {
 	b := strings.Builder{}
 	for {
 		frame, more := frames.Next()
@@ -57,7 +57,7 @@ func stackToString(frames *runtime.Frames) string {
 			break
 		}
 		b.WriteString("\n")
-		b.WriteString(stackFrameFormatter(frame))
+		b.WriteString(stackFormatter(frame))
 		if stackMode == StackModeCaller {
 			break
 		}

@@ -16,9 +16,9 @@ func Is(err, target error) bool {
 }
 
 type failure struct {
-	message string
-	stack   *runtime.Frames
-	trace   []string
+	message    string
+	stack      *runtime.Frames
+	stackSlice []string
 }
 
 func New(message string) error {
@@ -39,11 +39,12 @@ func (f *failure) Error() string {
 	return f.message
 }
 
-func (f *failure) Trace() []string {
-	if len(f.trace) == 0 {
-		f.trace = stackToSlice(f.stack)
+func (f *failure) Stack() []string {
+	if f.stack != nil && len(f.stackSlice) == 0 {
+		f.stackSlice = stackSlice(f.stack)
 	}
-	return f.trace
+
+	return f.stackSlice
 }
 
 func (f *failure) Format(s fmt.State, verb rune) {
@@ -51,9 +52,10 @@ func (f *failure) Format(s fmt.State, verb rune) {
 }
 
 type wrappedFailure struct {
-	message string
-	stack   *runtime.Frames
-	cause   error
+	message    string
+	stack      *runtime.Frames
+	stackSlice []string
+	cause      error
 }
 
 func Wrap(err error, message string) error {
@@ -84,6 +86,14 @@ func (w *wrappedFailure) Error() string {
 	return w.message + ": " + w.cause.Error()
 }
 
+func (w *wrappedFailure) Stack() []string {
+	if w.stack != nil && len(w.stackSlice) == 0 {
+		w.stackSlice = stackSlice(w.stack)
+	}
+
+	return w.stackSlice
+}
+
 func (w *wrappedFailure) Format(s fmt.State, verb rune) {
 	format(s, verb, w.Error(), w.stack)
 }
@@ -106,10 +116,10 @@ func format(s fmt.State, verb rune, message string, stack *runtime.Frames) {
 			case StackModeNone:
 			case StackModeCaller:
 				_, _ = io.WriteString(s, "\n\nCaller:")
-				_, _ = io.WriteString(s, stackToString(stack))
+				_, _ = io.WriteString(s, stackString(stack))
 			default:
 				_, _ = io.WriteString(s, "\n\nStack Trace:")
-				_, _ = io.WriteString(s, stackToString(stack))
+				_, _ = io.WriteString(s, stackString(stack))
 			}
 			return
 		}

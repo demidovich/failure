@@ -6,8 +6,8 @@ import (
 
 var (
 	stackMode    StackMode = StackModeFull
-	stackRootDir string    = ""
-	stackPrefix  string    = ""
+	stackRootDir string
+	stackPrefix  string
 )
 
 type StackMode string
