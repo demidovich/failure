@@ -81,18 +81,19 @@ func TestFormatStackModeFull(t *testing.T) {
 
 func TestFormatVerbs(t *testing.T) {
 	tests := []struct {
+		message  string
 		expected string
 		verb     string
 	}{
-		{"foo", "%v"},
-		{"foo", "%s"},
-		{"foo", "%q"},
+		{"foo", "foo", "%v"},
+		{"foo", "foo", "%s"},
+		{"foo", "\"foo\"", "%q"},
 	}
 
 	SetStackMode(StackModeFull)
 
 	for _, tt := range tests {
-		err := New(tt.expected)
+		err := New(tt.message)
 		actual := fmt.Sprintf(tt.verb, err)
 		if tt.expected != actual {
 			t.Errorf("Verb: %s, expected: %s, actual: %s", tt.verb, tt.expected, actual)

@@ -111,20 +111,22 @@ func format(s fmt.State, verb rune, message string, stack *runtime.Frames) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			_, _ = io.WriteString(s, message)
+			io.WriteString(s, message)
 			switch stackMode {
 			case StackModeNone:
 			case StackModeCaller:
-				_, _ = io.WriteString(s, "\n\nCaller:")
-				_, _ = io.WriteString(s, stackString(stack))
+				io.WriteString(s, "\n\nCaller:")
+				io.WriteString(s, stackString(stack))
 			default:
-				_, _ = io.WriteString(s, "\n\nStack Trace:")
-				_, _ = io.WriteString(s, stackString(stack))
+				io.WriteString(s, "\n\nStack Trace:")
+				io.WriteString(s, stackString(stack))
 			}
 			return
 		}
 		fallthrough
-	case 's', 'q':
-		_, _ = io.WriteString(s, message)
+	case 's':
+		io.WriteString(s, message)
+	case 'q':
+		fmt.Fprintf(s, "%q", message)
 	}
 }
