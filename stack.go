@@ -9,14 +9,14 @@ import (
 const stackSkipFrames = 3
 
 var stackframeFormatter = func(f runtime.Frame) string {
-	return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, relativePath(f.File), f.Line, f.Function)
+	return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, RelativePath(f.File), f.Line, f.Function)
 }
 
 func SetStackframeFormatter(f func(f runtime.Frame) string) {
 	stackframeFormatter = f
 }
 
-func relativePath(file string) string {
+func RelativePath(file string) string {
 	return strings.TrimPrefix(file, stackRootDir)
 }
 
