@@ -53,7 +53,7 @@ Stack Trace:
 
 Сontrol of stack trace display mode.
 
-### Full
+#### Full
 
 ```go
 failure.SetStackMode(failure.StackModeFull)
@@ -70,7 +70,7 @@ Stack Trace:
  --- /usr/lib/go-1.24/src/runtime/asm_amd64.s:1700 (runtime.goexit)
 ```
 
-### Root
+#### Root
 
 ```go
 failure.SetStackMode(failure.StackModeRoot)
@@ -86,7 +86,7 @@ Stack Trace:
  --- main.go:15 (main.main)
 ```
 
-### Caller
+#### Caller
 
 ```go
 failure.SetStackMode(failure.StackModeCaller)
@@ -100,7 +100,7 @@ Caller:
  --- main.go:25 (main.missingRead)
 ```
 
-### None
+#### None
 
 ```go
 failure.SetStackMode(failure.StackModeNone)
