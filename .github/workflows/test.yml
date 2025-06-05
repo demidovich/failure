@@ -3,8 +3,14 @@ name: test
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'README.md'
+      - 'examples/**'
   pull_request:
     branches: [master]
+    paths-ignore:
+      - 'README.md'
+      - 'examples/**'
 
 jobs:
   test:
