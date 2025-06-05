@@ -6,29 +6,60 @@ import (
 	"strings"
 )
 
-func newStack(skipFrames int) *runtime.Frames {
+const stackSkipFrames = 3
+
+var stackframeFormatter = func(f runtime.Frame) string {
+	return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, relativePath(f.File), f.Line, f.Function)
+}
+
+func SetStackframeFormatter(f func(f runtime.Frame) string) {
+	stackframeFormatter = f
+}
+
+func relativePath(file string) string {
+	return strings.TrimPrefix(file, stackRootDir)
+}
+
+func newStack() *stack {
 	if stackMode == StackModeNone {
-		return nil
+		return &stack{}
 	}
 
 	const depth = 32
 	var pcs = make([]uintptr, depth)
 
-	size := runtime.Callers(skipFrames, pcs[:])
+	size := runtime.Callers(stackSkipFrames, pcs[:])
 	pcs = pcs[:size]
 
-	return runtime.CallersFrames(pcs)
+	return &stack{
+		frames: runtime.CallersFrames(pcs),
+	}
 }
 
-func stackToString(frames *runtime.Frames) string {
-	b := strings.Builder{}
+type stack struct {
+	frames   *runtime.Frames
+	hasSlice bool
+	slice    []string
+}
+
+func (s *stack) Slice() []string {
+	if s.hasSlice {
+		return s.slice
+	}
+
+	s.slice = make([]string, 0, 32)
+	if s.frames == nil {
+		return s.slice
+	}
+
 	for {
-		frame, more := frames.Next()
-		if stackMode == StackModeRoot && isExternalFile(frame.File) {
+		frame, more := s.frames.Next()
+		if stackMode == StackModeRoot && s.isExternalFile(frame.File) {
 			break
 		}
-		b.WriteString(
-			fmt.Sprintf("\n%s%s:%d (%s)", stackPrefix, relativePath(frame.File), frame.Line, frame.Function),
+		s.slice = append(
+			s.slice,
+			stackframeFormatter(frame),
 		)
 		if stackMode == StackModeCaller {
 			break
@@ -38,13 +69,20 @@ func stackToString(frames *runtime.Frames) string {
 		}
 	}
 
+	s.hasSlice = true
+	return s.slice
+}
+
+func (s *stack) String() string {
+	b := strings.Builder{}
+	for _, line := range s.Slice() {
+		b.WriteString("\n")
+		b.WriteString(line)
+	}
+
 	return b.String()
 }
 
-func relativePath(file string) string {
-	return strings.TrimPrefix(file, stackRootDir)
-}
-
-func isExternalFile(file string) bool {
+func (s *stack) isExternalFile(file string) bool {
 	return !strings.HasPrefix(file, stackRootDir)
 }

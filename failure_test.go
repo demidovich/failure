@@ -39,6 +39,38 @@ func TestWrapf(t *testing.T) {
 	assert.Equal(t, "formatted error B: error A", errB.Error())
 }
 
+func TestWrapFormat(t *testing.T) {
+	stackMode = "none"
+	errA := errors.New("error A")
+	errB := Wrap(errA, "error B")
+	msg := fmt.Sprintf("%v", errB)
+
+	assert.Equal(t, "error B: error A", msg)
+}
+
+type testingFailureCause interface {
+	Cause() error
+}
+
+func TestWrapCause(t *testing.T) {
+	errA := errors.New("error A")
+	errB := Wrap(errA, "error B")
+
+	var cause error
+	if e, ok := errB.(testingFailureCause); ok {
+		cause = e.Cause()
+	}
+
+	assert.Equal(t, "error A", cause.Error())
+}
+
+func TestWrapCauseWithoutMessage(t *testing.T) {
+	errA := errors.New("")
+	errB := Wrap(errA, "error B")
+
+	assert.Equal(t, "error B", errB.Error())
+}
+
 func TestWrapfNil(t *testing.T) {
 	err := Wrapf(nil, "no error")
 
@@ -58,4 +90,18 @@ func TestAs(t *testing.T) {
 	errB := Wrap(errA, "error B")
 
 	assert.True(t, As(errB, &errA))
+}
+
+func TestStack(t *testing.T) {
+	stackMode = StackModeFull
+	err := New("foo")
+
+	assert.True(t, len(err.Stack()) > 0)
+}
+
+func TestWrapStack(t *testing.T) {
+	stackMode = StackModeFull
+	err := Wrap(errors.New("foo"), "bar")
+
+	assert.True(t, len(err.Stack()) > 0)
 }

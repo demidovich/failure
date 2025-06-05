@@ -28,6 +28,7 @@ nbproject
 
 # Coverage test
 coverage.txt
+coverage.xml
 
 # Modules
 vendor

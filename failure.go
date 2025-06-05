@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"runtime"
 )
 
 func As(err error, target any) bool {
@@ -15,74 +14,86 @@ func Is(err, target error) bool {
 	return errors.Is(err, target)
 }
 
+type Error interface {
+	Error() string
+	Stack() []string
+}
+
 type failure struct {
 	message string
-	stack   *runtime.Frames
+	stack   *stack
 }
 
-func New(message string) error {
+func New(message string) Error {
 	return &failure{
 		message: message,
-		stack:   newStack(3),
+		stack:   newStack(),
 	}
 }
 
-func Newf(format string, args ...any) error {
+func Newf(format string, args ...any) Error {
 	return &failure{
 		message: fmt.Sprintf(format, args...),
-		stack:   newStack(3),
+		stack:   newStack(),
 	}
 }
 
-func (b *failure) Error() string {
-	return b.message
+func (f *failure) Error() string {
+	return f.message
 }
 
-// func (b failure) Caller() runtime.Frame {
-// 	frame, _ := b.stack.Next()
-// 	return frame
-// }
+func (f *failure) Stack() []string {
+	return f.stack.Slice()
+}
 
-func (b *failure) Format(s fmt.State, verb rune) {
-	format(s, verb, b.message, b.stack)
+func (f *failure) Format(s fmt.State, verb rune) {
+	format(s, verb, f.message, f.stack.String())
 }
 
 type wrappedFailure struct {
 	message string
-	stack   *runtime.Frames
+	stack   *stack
 	cause   error
 }
 
-func Wrap(err error, message string) error {
+func Wrap(err error, message string) Error {
 	if err == nil {
 		return nil
 	}
 
 	return &wrappedFailure{
 		message: message,
-		stack:   newStack(3),
+		stack:   newStack(),
 		cause:   err,
 	}
 }
 
-func Wrapf(err error, format string, args ...any) error {
+func Wrapf(err error, format string, args ...any) Error {
 	if err == nil {
 		return nil
 	}
 
 	return &wrappedFailure{
 		message: fmt.Sprintf(format, args...),
-		stack:   newStack(3),
+		stack:   newStack(),
 		cause:   err,
 	}
 }
 
 func (w *wrappedFailure) Error() string {
-	return w.message + ": " + w.cause.Error()
+	if w.cause.Error() == "" {
+		return w.message
+	} else {
+		return w.message + ": " + w.cause.Error()
+	}
+}
+
+func (w *wrappedFailure) Stack() []string {
+	return w.stack.Slice()
 }
 
 func (w *wrappedFailure) Format(s fmt.State, verb rune) {
-	format(s, verb, w.Error(), w.stack)
+	format(s, verb, w.Error(), w.stack.String())
 }
 
 func (w *wrappedFailure) Cause() error {
@@ -94,7 +105,7 @@ func (w *wrappedFailure) Unwrap() error {
 }
 
 // Universal formatter for wrapped and unwrapped errors
-func format(s fmt.State, verb rune, message string, stack *runtime.Frames) {
+func format(s fmt.State, verb rune, message string, stack string) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
@@ -103,15 +114,17 @@ func format(s fmt.State, verb rune, message string, stack *runtime.Frames) {
 			case StackModeNone:
 			case StackModeCaller:
 				_, _ = io.WriteString(s, "\n\nCaller:")
-				_, _ = io.WriteString(s, stackToString(stack))
+				_, _ = io.WriteString(s, stack)
 			default:
 				_, _ = io.WriteString(s, "\n\nStack Trace:")
-				_, _ = io.WriteString(s, stackToString(stack))
+				_, _ = io.WriteString(s, stack)
 			}
 			return
 		}
 		fallthrough
-	case 's', 'q':
+	case 's':
 		_, _ = io.WriteString(s, message)
+	case 'q':
+		fmt.Fprintf(s, "%q", message)
 	}
 }
