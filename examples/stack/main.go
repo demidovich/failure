@@ -10,10 +10,13 @@ import (
 func main() {
 	failure.SetStackMode(failure.StackModeRoot)
 	failure.SetStackRootDir("./")
-	failure.SetStackPrefix("  --- ")
 
-	if err := read(); err != nil {
-		fmt.Printf("%+v\n", err)
+	err := read()
+
+	if e, ok := err.(failure.Error); ok {
+		for _, line := range e.Stack() {
+			fmt.Println(line)
+		}
 	}
 }
 
