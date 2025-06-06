@@ -1,18 +1,9 @@
 package failure
 
 import (
-	"errors"
 	"fmt"
 	"io"
 )
-
-func As(err error, target any) bool {
-	return errors.As(err, target)
-}
-
-func Is(err, target error) bool {
-	return errors.Is(err, target)
-}
 
 type Error interface {
 	Error() string
@@ -21,7 +12,7 @@ type Error interface {
 
 type failure struct {
 	message string
-	stack   *stack
+	stack   stack
 }
 
 func New(message string) Error {
@@ -52,7 +43,7 @@ func (f *failure) Format(s fmt.State, verb rune) {
 
 type wrappedFailure struct {
 	message string
-	stack   *stack
+	stack   stack
 	cause   error
 }
 
@@ -94,10 +85,6 @@ func (w *wrappedFailure) Stack() []string {
 
 func (w *wrappedFailure) Format(s fmt.State, verb rune) {
 	format(s, verb, w.Error(), w.stack.String())
-}
-
-func (w *wrappedFailure) Cause() error {
-	return w.cause
 }
 
 func (w *wrappedFailure) Unwrap() error {

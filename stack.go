@@ -20,9 +20,9 @@ func RelativePath(file string) string {
 	return strings.TrimPrefix(file, stackRootDir)
 }
 
-func newStack() *stack {
+func newStack() stack {
 	if stackMode == StackModeNone {
-		return &stack{}
+		return stack{}
 	}
 
 	const depth = 32
@@ -31,7 +31,7 @@ func newStack() *stack {
 	size := runtime.Callers(stackSkipFrames, pcs[:])
 	pcs = pcs[:size]
 
-	return &stack{
+	return stack{
 		frames: runtime.CallersFrames(pcs),
 	}
 }
