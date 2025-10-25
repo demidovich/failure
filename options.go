@@ -1,13 +1,9 @@
 package failure
 
 import (
+	"fmt"
 	"path/filepath"
-)
-
-var (
-	stackMode    StackMode = StackModeFull
-	stackRootDir string
-	stackPrefix  string
+	"runtime"
 )
 
 type StackMode string
@@ -17,7 +13,21 @@ const (
 	StackModeCaller StackMode = "caller"
 	StackModeRoot   StackMode = "root"
 	StackModeFull   StackMode = "full"
+	skipStackFrames           = 3
 )
+
+var (
+	stackMode           StackMode = StackModeFull
+	stackRootDir        string
+	stackPrefix         string
+	stackframeFormatter = func(f runtime.Frame) string {
+		return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, RelativePath(f.File), f.Line, f.Function)
+	}
+)
+
+func SetStackframeFormatter(f func(f runtime.Frame) string) {
+	stackframeFormatter = f
+}
 
 // Set stackMode variable for change stack trace verbosity
 func SetStackMode(value StackMode) {

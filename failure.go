@@ -47,16 +47,20 @@ type wrappedFailure struct {
 	cause   error
 }
 
-func Wrap(err error, message string) Error {
+func Wrap(err error) Error {
 	if err == nil {
 		return nil
 	}
 
-	return &wrappedFailure{
-		message: message,
-		stack:   newStack(),
-		cause:   err,
+	w := wrappedFailure{
+		cause: err,
 	}
+
+	if _, ok := err.(Error); !ok {
+		w.stack = newStack()
+	}
+
+	return &w
 }
 
 func Wrapf(err error, format string, args ...any) Error {
@@ -64,11 +68,16 @@ func Wrapf(err error, format string, args ...any) Error {
 		return nil
 	}
 
-	return &wrappedFailure{
+	w := wrappedFailure{
 		message: fmt.Sprintf(format, args...),
-		stack:   newStack(),
 		cause:   err,
 	}
+
+	if _, ok := err.(Error); !ok {
+		w.stack = newStack()
+	}
+
+	return &w
 }
 
 func (w *wrappedFailure) Error() string {
@@ -97,6 +106,9 @@ func format(s fmt.State, verb rune, message string, stack string) {
 	case 'v':
 		if s.Flag('+') {
 			_, _ = io.WriteString(s, message)
+
+			// fmt.Println("#########", stackMode)
+
 			switch stackMode {
 			case StackModeNone:
 			case StackModeCaller:

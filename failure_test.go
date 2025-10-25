@@ -8,85 +8,95 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNew(t *testing.T) {
-	err := New("foo")
-	assert.Equal(t, "foo", err.Error())
-}
-
-func TestNewf(t *testing.T) {
-	err := Newf("foo %s", "bar")
-	assert.Equal(t, "foo bar", err.Error())
-}
-
-func TestWrap(t *testing.T) {
-	errA := errors.New("error A")
-	errB := fmt.Errorf("%w", errA)
-	errC := Wrap(errB, "error C")
-
-	assert.True(t, errors.Is(errC, errA))
-}
-
-func TestWrapNil(t *testing.T) {
-	err := Wrap(nil, "no error")
-
-	assert.Nil(t, err)
-}
-
-func TestWrapf(t *testing.T) {
-	errA := errors.New("error A")
-	errB := Wrapf(errA, "formatted error %s", "B")
-
-	assert.Equal(t, "formatted error B: error A", errB.Error())
-}
-
-func TestWrapFormat(t *testing.T) {
-	stackMode = "none"
-	errA := errors.New("error A")
-	errB := Wrap(errA, "error B")
-	msg := fmt.Sprintf("%v", errB)
-
-	assert.Equal(t, "error B: error A", msg)
-}
-
 type testingWrappedFailure interface {
 	Unwrap() error
 }
 
-func TestWrapCause(t *testing.T) {
-	errA := errors.New("error A")
-	errB := Wrap(errA, "error B")
+func TestFailure(t *testing.T) {
 
-	var cause error
-	if e, ok := errB.(testingWrappedFailure); ok {
-		cause = e.Unwrap()
-	}
+	t.Run("New", func(t *testing.T) {
+		err := New("foo")
+		assert.Equal(t, "foo", err.Error())
+	})
 
-	assert.Equal(t, "error A", cause.Error())
-}
+	t.Run("Newf", func(t *testing.T) {
+		err := Newf("foo %s", "bar")
+		assert.Equal(t, "foo bar", err.Error())
+	})
 
-func TestWrapCauseWithoutMessage(t *testing.T) {
-	errA := errors.New("")
-	errB := Wrap(errA, "error B")
+	t.Run("Wrap", func(t *testing.T) {
+		errA := errors.New("error A")
+		errB := fmt.Errorf("%w", errA)
+		errC := Wrapf(errB, "error C")
 
-	assert.Equal(t, "error B", errB.Error())
-}
+		assert.True(t, errors.Is(errC, errA))
+	})
 
-func TestWrapfNil(t *testing.T) {
-	err := Wrapf(nil, "no error")
+	t.Run("Wrap nil", func(t *testing.T) {
+		err := Wrap(nil)
 
-	assert.Nil(t, err)
-}
+		assert.Nil(t, err)
+	})
 
-func TestStack(t *testing.T) {
-	stackMode = StackModeFull
-	err := New("foo")
+	t.Run("Wrapf", func(t *testing.T) {
+		errA := errors.New("error A")
+		errB := Wrapf(errA, "formatted error %s", "B")
 
-	assert.True(t, len(err.Stack()) > 0)
-}
+		assert.Equal(t, "formatted error B: error A", errB.Error())
+	})
 
-func TestWrapStack(t *testing.T) {
-	stackMode = StackModeFull
-	err := Wrap(errors.New("foo"), "bar")
+	t.Run("Wrapf nil", func(t *testing.T) {
+		err := Wrapf(nil, "")
 
-	assert.True(t, len(err.Stack()) > 0)
+		assert.Nil(t, err)
+	})
+
+	t.Run("Wrapf format", func(t *testing.T) {
+		stackMode = "none"
+		errA := errors.New("error A")
+		errB := Wrapf(errA, "error B")
+		msg := fmt.Sprintf("%v", errB)
+
+		assert.Equal(t, "error B: error A", msg)
+	})
+
+	t.Run("WrapCause", func(t *testing.T) {
+		errA := errors.New("error A")
+		errB := Wrapf(errA, "error B")
+
+		var cause error
+		if e, ok := errB.(testingWrappedFailure); ok {
+			cause = e.Unwrap()
+		}
+
+		assert.Equal(t, "error A", cause.Error())
+	})
+
+	t.Run("WrapCause without message", func(t *testing.T) {
+		errA := errors.New("")
+		errB := Wrapf(errA, "error B")
+
+		assert.Equal(t, "error B", errB.Error())
+	})
+
+	t.Run("WrapCause without message", func(t *testing.T) {
+		errA := errors.New("")
+		errB := Wrapf(errA, "error B")
+
+		assert.Equal(t, "error B", errB.Error())
+	})
+
+	t.Run("New stack", func(t *testing.T) {
+		stackMode = StackModeFull
+		err := New("foo")
+
+		assert.True(t, len(err.Stack()) > 0)
+	})
+
+	t.Run("Wrap stack", func(t *testing.T) {
+		stackMode = StackModeFull
+		err := Wrapf(errors.New("foo"), "bar")
+
+		assert.True(t, len(err.Stack()) > 0)
+	})
 }

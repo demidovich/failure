@@ -16,96 +16,95 @@ func bar() error {
 	return foo()
 }
 
-func TestFormatStackModeNone(t *testing.T) {
-	SetStackMode(StackModeNone)
+func TestFormat(t *testing.T) {
+	t.Run("StackModeNone", func(t *testing.T) {
+		SetStackMode(StackModeNone)
 
-	err := bar()
-	msg := fmt.Sprintf("%+v", err)
+		err := bar()
+		msg := fmt.Sprintf("%+v", err)
 
-	assert.Equal(t, "foo", msg)
-}
+		assert.Equal(t, "foo", msg)
+	})
 
-func TestFormatStackModeCaller(t *testing.T) {
-	SetStackMode(StackModeCaller)
-	SetStackRootDir(".")
-	SetStackPrefix("")
+	t.Run("StackModeCaller", func(t *testing.T) {
+		SetStackMode(StackModeCaller)
+		SetStackRootDir(".")
+		SetStackPrefix("")
 
-	err := bar()
-	msg := fmt.Sprintf("%+v", err)
+		err := bar()
+		msg := fmt.Sprintf("%+v", err)
+		expected := strings.Join([]string{
+			"foo\n",
+			"Caller:",
+			"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
+		}, "\n")
 
-	expected := strings.Join([]string{
-		"foo\n",
-		"Caller:",
-		"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
-	}, "\n")
+		assert.Equal(t, expected, msg)
+	})
 
-	assert.Equal(t, expected, msg)
-}
+	t.Run("StackModeRoot", func(t *testing.T) {
+		SetStackMode(StackModeRoot)
+		SetStackRootDir(".")
+		SetStackPrefix("")
 
-func TestFormatStackModeRoot(t *testing.T) {
-	SetStackMode(StackModeRoot)
-	SetStackRootDir(".")
-	SetStackPrefix("")
+		err := bar()
+		msg := fmt.Sprintf("%+v", err)
+		expected := strings.Join([]string{
+			"foo\n",
+			"Stack Trace:",
+			"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
+			"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
+			"failure_format_test.go:50 (github.com/demidovich/failure.TestFormat.func3)",
+		}, "\n")
 
-	err := bar()
-	msg := fmt.Sprintf("%+v", err)
+		assert.Equal(t, expected, msg)
+	})
 
-	expected := strings.Join([]string{
-		"foo\n",
-		"Stack Trace:",
-		"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
-		"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
-		"failure_format_test.go:50 (github.com/demidovich/failure.TestFormatStackModeRoot)",
-	}, "\n")
+	t.Run("StackModeFull", func(t *testing.T) {
+		SetStackMode(StackModeFull)
+		SetStackPrefix("")
 
-	assert.Equal(t, expected, msg)
-}
+		err := bar()
+		msg := fmt.Sprintf("%+v", err)
+		prefix := strings.Join([]string{
+			"foo\n",
+			"Stack Trace:",
+			"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
+			"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
+			"failure_format_test.go:67 (github.com/demidovich/failure.TestFormat.func4)",
+		}, "\n")
 
-func TestFormatStackModeFull(t *testing.T) {
-	SetStackMode(StackModeFull)
-	SetStackPrefix("")
+		assert.Contains(t, msg, prefix)
+	})
 
-	err := bar()
-	msg := fmt.Sprintf("%+v", err)
-
-	prefix := strings.Join([]string{
-		"foo\n",
-		"Stack Trace:",
-		"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
-		"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
-		"failure_format_test.go:68 (github.com/demidovich/failure.TestFormatStackModeFull)",
-	}, "\n")
-
-	assert.Contains(t, msg, prefix)
-}
-
-func TestFormatVerbs(t *testing.T) {
-	tests := []struct {
-		message  string
-		expected string
-		verb     string
-	}{
-		{"foo", "foo", "%v"},
-		{"foo", "foo", "%s"},
-		{"foo", "\"foo\"", "%q"},
-	}
-
-	SetStackMode(StackModeFull)
-
-	for _, tt := range tests {
-		err := New(tt.message)
-		actual := fmt.Sprintf(tt.verb, err)
-		if tt.expected != actual {
-			t.Errorf("Verb: %s, expected: %s, actual: %s", tt.verb, tt.expected, actual)
+	t.Run("verbs", func(t *testing.T) {
+		tests := []struct {
+			message  string
+			expected string
+			verb     string
+		}{
+			{"foo", "foo", "%v"},
+			{"foo", "foo", "%s"},
+			{"foo", "\"foo\"", "%q"},
 		}
-	}
-}
 
-func TestFormatS(t *testing.T) {
-	SetStackMode(StackModeNone)
+		SetStackMode(StackModeFull)
 
-	err := bar()
-	msg := fmt.Sprintf("%s", err)
+		for _, tt := range tests {
+			err := New(tt.message)
+			actual := fmt.Sprintf(tt.verb, err)
+			if tt.expected != actual {
+				t.Errorf("Verb: %s, expected: %s, actual: %s", tt.verb, tt.expected, actual)
+			}
+		}
+	})
 
-	assert.Equal(t, "foo", msg)
+	t.Run("%s", func(t *testing.T) {
+		SetStackMode(StackModeNone)
+
+		err := bar()
+		msg := fmt.Sprintf("%s", err)
+
+		assert.Equal(t, "foo", msg)
+	})
 }

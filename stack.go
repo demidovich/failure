@@ -1,23 +1,14 @@
 package failure
 
 import (
-	"fmt"
 	"runtime"
 	"strings"
 )
 
-const stackSkipFrames = 3
-
-var stackframeFormatter = func(f runtime.Frame) string {
-	return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, RelativePath(f.File), f.Line, f.Function)
-}
-
-func SetStackframeFormatter(f func(f runtime.Frame) string) {
-	stackframeFormatter = f
-}
-
-func RelativePath(file string) string {
-	return strings.TrimPrefix(file, stackRootDir)
+type stack struct {
+	frames   *runtime.Frames
+	hasSlice bool
+	slice    []string
 }
 
 func newStack() stack {
@@ -28,18 +19,12 @@ func newStack() stack {
 	const depth = 32
 	var pcs = make([]uintptr, depth)
 
-	size := runtime.Callers(stackSkipFrames, pcs[:])
+	size := runtime.Callers(skipStackFrames, pcs[:])
 	pcs = pcs[:size]
 
 	return stack{
 		frames: runtime.CallersFrames(pcs),
 	}
-}
-
-type stack struct {
-	frames   *runtime.Frames
-	hasSlice bool
-	slice    []string
 }
 
 func (s *stack) Slice() []string {
@@ -85,4 +70,8 @@ func (s *stack) String() string {
 
 func (s *stack) isExternalFile(file string) bool {
 	return !strings.HasPrefix(file, stackRootDir)
+}
+
+func RelativePath(file string) string {
+	return strings.TrimPrefix(file, stackRootDir)
 }
