@@ -20,7 +20,8 @@ var (
 	stackMode           StackMode = StackModeFull
 	stackRootDir        string
 	stackPrefix         string
-	stackframeFormatter = func(f runtime.Frame) string {
+	stackDepth          int = 32
+	stackframeFormatter     = func(f runtime.Frame) string {
 		return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, RelativePath(f.File), f.Line, f.Function)
 	}
 )
@@ -45,4 +46,11 @@ func SetStackRootDir(value string) {
 // Set stackPrefix variable for readability logs
 func SetStackPrefix(value string) {
 	stackPrefix = value
+}
+
+func SetStackDepth(value int) {
+	if value < 1 {
+		panic("stack depth cannot be less than 1")
+	}
+	stackDepth = value
 }

@@ -16,8 +16,7 @@ func newStack() stack {
 		return stack{}
 	}
 
-	const depth = 32
-	var pcs = make([]uintptr, depth)
+	var pcs = make([]uintptr, stackDepth)
 
 	size := runtime.Callers(skipStackFrames, pcs[:])
 	pcs = pcs[:size]
@@ -32,7 +31,7 @@ func (s *stack) Slice() []string {
 		return s.slice
 	}
 
-	s.slice = make([]string, 0, 32)
+	s.slice = make([]string, 0, stackDepth)
 	if s.frames == nil {
 		return s.slice
 	}

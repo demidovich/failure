@@ -30,6 +30,24 @@ func TestOptions(t *testing.T) {
 		assert.Equal(t, value, stackPrefix)
 	})
 
+	t.Run("SetStackDeth ok", func(t *testing.T) {
+		value := 10
+		SetStackDepth(value)
+
+		assert.Equal(t, value, stackDepth)
+	})
+
+	t.Run("SetStackDeth fails on invalid value", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("don`t panic")
+			}
+		}()
+
+		SetStackDepth(0)
+		SetStackDepth(-1)
+	})
+
 	t.Run("SetStackframeFormatter", func(t *testing.T) {
 		formatter := func(f runtime.Frame) string {
 			return fmt.Sprintf("%s %d %s", f.File, f.Line, f.Function)
