@@ -15,18 +15,14 @@ type failure struct {
 	stack   stack
 }
 
-// New makes an Error from the given value.
-func New(message string) Error {
-	return &failure{
-		message: message,
-		stack:   newStack(),
-	}
-}
-
 // New makes an Error with formatted message from the given value.
-func Newf(format string, args ...any) Error {
+func New(format string, args ...any) Error {
+	if len(args) > 0 {
+		format = fmt.Sprintf(format, args...)
+	}
+
 	return &failure{
-		message: fmt.Sprintf(format, args...),
+		message: format,
 		stack:   newStack(),
 	}
 }
@@ -49,14 +45,19 @@ type wrappedFailure struct {
 	cause   error
 }
 
-// Wrap makes an Error from the given value.
-func Wrap(err error) Error {
+// Wrap makes an wrapped Error with formatted message from the given value.
+func Wrap(err error, format string, args ...any) Error {
 	if err == nil {
 		return nil
 	}
 
+	if len(args) > 0 {
+		format = fmt.Sprintf(format, args...)
+	}
+
 	w := wrappedFailure{
-		cause: err,
+		message: format,
+		cause:   err,
 	}
 
 	if _, ok := err.(Error); !ok {
@@ -66,22 +67,30 @@ func Wrap(err error) Error {
 	return &w
 }
 
-// New makes an Error with formatted message from the given value.
-func Wrapf(err error, format string, args ...any) Error {
-	if err == nil {
-		return nil
+// WrapfDeferred makes an deferred Error with formatted message from the given value.
+func WrapDeferred(errP *error, format string, args ...any) {
+	if *errP == nil {
+		return
 	}
 
-	w := wrappedFailure{
-		message: fmt.Sprintf(format, args...),
-		cause:   err,
+	if len(args) > 0 {
+		format = fmt.Sprintf(format, args...)
 	}
 
-	if _, ok := err.(Error); !ok {
-		w.stack = newStack()
+	var s stack
+	if e, ok := (*errP).(*failure); ok {
+		s = e.stack
+	} else if e, ok := (*errP).(*wrappedFailure); ok {
+		s = e.stack
+	} else {
+		s = newStack()
 	}
 
-	return &w
+	*errP = &wrappedFailure{
+		message: format,
+		cause:   *errP,
+		stack:   s,
+	}
 }
 
 func (w *wrappedFailure) Error() string {

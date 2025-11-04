@@ -10,7 +10,7 @@ import (
 func main() {
 	failure.SetStackMode(failure.StackModeRoot)
 	failure.SetStackRootDir("./")
-	failure.SetStackPrefix(" --- ")
+	failure.SetStackPrefix("  --- ")
 
 	err := read()
 	fmt.Printf("%+v\n", err)
@@ -22,5 +22,5 @@ func read() error {
 
 func missingRead() error {
 	_, err := os.ReadFile("/tmp/missing_file")
-	return failure.Wrapf(err, "read file error")
+	return failure.Wrap(err, "read file error")
 }

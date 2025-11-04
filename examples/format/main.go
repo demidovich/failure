@@ -27,5 +27,5 @@ func read() error {
 
 func missingRead() error {
 	_, err := os.ReadFile("/tmp/missing_file")
-	return failure.Wrapf(err, "read file error")
+	return failure.Wrap(err, "read file error")
 }

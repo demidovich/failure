@@ -35,8 +35,9 @@ func read() error {
 }
 
 func missingRead() error {
-	_, err := os.ReadFile("/tmp/missing_file")
-	return failure.Wrapf(err, "read file error")
+    file := "/tmp/missing_file"
+	_, err := os.ReadFile(file)
+	return failure.Wrap(err, "read file %serror", file)
 }
 ```
 
@@ -47,6 +48,68 @@ Stack Trace:
  --- main.go:25 (main.missingRead)
  --- main.go:20 (main.read)
  --- main.go:15 (main.main)
+```
+
+Wrap deferred
+
+```go
+package main
+
+import (
+	"errors"
+	"fmt"
+
+	"github.com/demidovich/failure"
+)
+
+func main() {
+	failure.SetStackMode(failure.StackModeRoot)
+	failure.SetStackRootDir("./")
+
+	err := a()
+	fmt.Printf("%+v\n", err)
+}
+
+func a() (err error) {
+	defer failure.WrapDeferred(&err, "a error")
+
+	err = b()
+	if err != nil {
+		return
+	}
+
+	err = c()
+	if err != nil {
+		return
+	}
+
+	err = d()
+	if err != nil {
+		return
+	}
+
+	return nil
+}
+
+func b() error {
+	return nil
+}
+
+func c() error {
+	return nil
+}
+
+func d() error {
+	return errors.New("c error")
+}
+```
+
+```
+a error: c error
+
+Stack Trace:
+main.go:33 (main.a)
+main.go:14 (main.main)
 ```
 
 ## StackMode
