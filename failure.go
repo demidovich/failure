@@ -67,7 +67,7 @@ func Wrap(err error, format string, args ...any) Error {
 	return &w
 }
 
-// WrapfDeferred makes an deferred Error with formatted message from the given value.
+// WrapDeferred makes an deferred Error with formatted message from the given value.
 func WrapDeferred(errP *error, format string, args ...any) {
 	if *errP == nil {
 		return

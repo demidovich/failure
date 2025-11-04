@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/demidovich/failure"
 )
@@ -10,6 +11,9 @@ import (
 func main() {
 	failure.SetStackMode(failure.StackModeRoot)
 	failure.SetStackRootDir("./")
+	failure.SetStackframeFormatter(func(f runtime.Frame) string {
+		return fmt.Sprintf("%s (%d)", failure.RelativePath(f.File), f.Line)
+	})
 
 	err := read()
 

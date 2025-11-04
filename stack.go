@@ -26,6 +26,10 @@ func newStack() stack {
 	}
 }
 
+func (s *stack) Frames() *runtime.Frames {
+	return s.frames
+}
+
 func (s *stack) Slice() []string {
 	if s.hasSlice {
 		return s.slice
