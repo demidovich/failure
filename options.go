@@ -17,15 +17,17 @@ const (
 )
 
 var (
-	stackMode           StackMode = StackModeFull
-	stackRootDir        string
-	stackPrefix         string
-	stackDepth          int = 32
-	stackframeFormatter     = func(f runtime.Frame) string {
-		return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, RelativePath(f.File), f.Line, f.Function)
-	}
+	stackMode    StackMode = StackModeFull
+	stackRootDir string
+	stackPrefix  string
+	stackDepth   int = 32
 )
 
+var stackframeFormatter = func(f runtime.Frame) string {
+	return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, RelativePath(f.File), f.Line, f.Function)
+}
+
+// SetStackframeFormatter set custom stack frame formatter
 func SetStackframeFormatter(f func(f runtime.Frame) string) {
 	stackframeFormatter = f
 }
@@ -35,7 +37,7 @@ func SetStackMode(value StackMode) {
 	stackMode = value
 }
 
-// Set stackRootDir variable for shorten file names in stack trace
+// SetStackRootDir set stackRootDir variable for shorten file names in stack trace
 func SetStackRootDir(value string) {
 	stackRootDir, _ = filepath.Abs(value)
 	if stackRootDir != "/" {
@@ -43,11 +45,12 @@ func SetStackRootDir(value string) {
 	}
 }
 
-// Set stackPrefix variable for readability logs
+// SetStackPrefix set stackPrefix variable for readability logs
 func SetStackPrefix(value string) {
 	stackPrefix = value
 }
 
+// SetStackPrefix set stackDepth variable
 func SetStackDepth(value int) {
 	if value < 1 {
 		panic("stack depth cannot be less than 1")

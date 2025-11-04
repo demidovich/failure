@@ -71,6 +71,7 @@ func (s *stack) isExternalFile(file string) bool {
 	return !strings.HasPrefix(file, stackRootDir)
 }
 
+// RelativePath returns a shortened path if the application root was specified
 func RelativePath(file string) string {
 	return strings.TrimPrefix(file, stackRootDir)
 }

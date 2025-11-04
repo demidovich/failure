@@ -15,6 +15,7 @@ type failure struct {
 	stack   stack
 }
 
+// New makes an Error from the given value.
 func New(message string) Error {
 	return &failure{
 		message: message,
@@ -22,6 +23,7 @@ func New(message string) Error {
 	}
 }
 
+// New makes an Error with formatted message from the given value.
 func Newf(format string, args ...any) Error {
 	return &failure{
 		message: fmt.Sprintf(format, args...),
@@ -47,6 +49,7 @@ type wrappedFailure struct {
 	cause   error
 }
 
+// Wrap makes an Error from the given value.
 func Wrap(err error) Error {
 	if err == nil {
 		return nil
@@ -63,6 +66,7 @@ func Wrap(err error) Error {
 	return &w
 }
 
+// New makes an Error with formatted message from the given value.
 func Wrapf(err error, format string, args ...any) Error {
 	if err == nil {
 		return nil
@@ -106,9 +110,6 @@ func format(s fmt.State, verb rune, message string, stack string) {
 	case 'v':
 		if s.Flag('+') {
 			_, _ = io.WriteString(s, message)
-
-			// fmt.Println("#########", stackMode)
-
 			switch stackMode {
 			case StackModeNone:
 			case StackModeCaller:
