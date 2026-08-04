@@ -17,7 +17,7 @@ func bar() error {
 }
 
 func TestFormat(t *testing.T) {
-	t.Run("ok StackModeNone", func(t *testing.T) {
+	t.Run("stackmode_none", func(t *testing.T) {
 		SetStackMode(StackModeNone)
 
 		err := bar()
@@ -26,7 +26,7 @@ func TestFormat(t *testing.T) {
 		assert.Equal(t, "foo", msg)
 	})
 
-	t.Run("ok StackModeCaller", func(t *testing.T) {
+	t.Run("stackmode_caller", func(t *testing.T) {
 		SetStackMode(StackModeCaller)
 		SetStackRootDir(".")
 		SetStackPrefix("")
@@ -42,7 +42,7 @@ func TestFormat(t *testing.T) {
 		assert.Equal(t, expected, msg)
 	})
 
-	t.Run("ok StackModeRoot", func(t *testing.T) {
+	t.Run("stackmode_root", func(t *testing.T) {
 		SetStackMode(StackModeRoot)
 		SetStackRootDir(".")
 		SetStackPrefix("")
@@ -60,7 +60,7 @@ func TestFormat(t *testing.T) {
 		assert.Equal(t, expected, msg)
 	})
 
-	t.Run("ok StackModeFull", func(t *testing.T) {
+	t.Run("stackmode_full", func(t *testing.T) {
 		SetStackMode(StackModeFull)
 		SetStackPrefix("")
 
@@ -77,7 +77,7 @@ func TestFormat(t *testing.T) {
 		assert.Contains(t, msg, prefix)
 	})
 
-	t.Run("ok format verbs", func(t *testing.T) {
+	t.Run("format_verbs", func(t *testing.T) {
 		tests := []struct {
 			message  string
 			expected string
@@ -99,7 +99,7 @@ func TestFormat(t *testing.T) {
 		}
 	})
 
-	t.Run("ok format s verb without stack", func(t *testing.T) {
+	t.Run("format_s_verb_without_stack", func(t *testing.T) {
 		SetStackMode(StackModeNone)
 
 		err := bar()
