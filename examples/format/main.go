@@ -11,11 +11,9 @@ import (
 func main() {
 	failure.SetStackMode(failure.StackModeRoot)
 	failure.SetStackRootDir("./")
-
-	formatter := func(f runtime.Frame) string {
+	failure.SetStackframeFormatter(func(f runtime.Frame) string {
 		return fmt.Sprintf(" -> %s, %s:%d", f.Function, failure.RelativePath(f.File), f.Line)
-	}
-	failure.SetStackframeFormatter(formatter)
+	})
 
 	err := read()
 	fmt.Printf("%+v\n", err)

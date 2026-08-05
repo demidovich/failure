@@ -7,12 +7,12 @@ import (
 
 type Error interface {
 	Error() string
-	Stack() []string
+	Stack() *Stack
 }
 
 type failure struct {
 	message string
-	stack   stack
+	stack   *Stack
 }
 
 // New makes an Error with formatted message from the given value.
@@ -31,8 +31,8 @@ func (f *failure) Error() string {
 	return f.message
 }
 
-func (f *failure) Stack() []string {
-	return f.stack.Slice()
+func (f *failure) Stack() *Stack {
+	return f.stack
 }
 
 func (f *failure) Format(s fmt.State, verb rune) {
@@ -41,7 +41,7 @@ func (f *failure) Format(s fmt.State, verb rune) {
 
 type wrappedFailure struct {
 	message string
-	stack   stack
+	stack   *Stack
 	cause   error
 }
 
@@ -55,16 +55,18 @@ func Wrap(err error, format string, args ...any) Error {
 		format = fmt.Sprintf(format, args...)
 	}
 
-	w := wrappedFailure{
+	w := &wrappedFailure{
 		message: format,
 		cause:   err,
 	}
 
-	if _, ok := err.(Error); !ok {
+	if s, ok := ExtractStack(err); ok {
+		w.stack = s
+	} else {
 		w.stack = newStack()
 	}
 
-	return &w
+	return w
 }
 
 // WrapDeferred makes an deferred Error with formatted message from the given value.
@@ -77,19 +79,17 @@ func WrapDeferred(errP *error, format string, args ...any) {
 		format = fmt.Sprintf(format, args...)
 	}
 
-	var s stack
-	if e, ok := (*errP).(*failure); ok {
-		s = e.stack
-	} else if e, ok := (*errP).(*wrappedFailure); ok {
-		s = e.stack
+	var stack *Stack
+	if s, ok := ExtractStack(*errP); ok {
+		stack = s
 	} else {
-		s = newStack()
+		stack = newStack()
 	}
 
 	*errP = &wrappedFailure{
 		message: format,
 		cause:   *errP,
-		stack:   s,
+		stack:   stack,
 	}
 }
 
@@ -101,8 +101,8 @@ func (w *wrappedFailure) Error() string {
 	}
 }
 
-func (w *wrappedFailure) Stack() []string {
-	return w.stack.Slice()
+func (w *wrappedFailure) Stack() *Stack {
+	return w.stack
 }
 
 func (w *wrappedFailure) Format(s fmt.State, verb rune) {

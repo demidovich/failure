@@ -17,8 +17,9 @@ func main() {
 
 	err := read()
 
-	if e, ok := err.(failure.Error); ok {
-		for _, line := range e.Stack() {
+	stack, ok := failure.ExtractStack(err)
+	if ok {
+		for _, line := range stack.Slice() {
 			fmt.Println(line)
 		}
 	}

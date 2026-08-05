@@ -18,16 +18,16 @@ func TestFailure_New(t *testing.T) {
 		assert.Equal(t, "foo", err.Error())
 	})
 
-	t.Run("new_with_formatted_message", func(t *testing.T) {
-		err := New("foo %s", "bar")
-		assert.Equal(t, "foo bar", err.Error())
+	t.Run("new_formatted_message", func(t *testing.T) {
+		err := New("foo: %s", "bar")
+		assert.Equal(t, "foo: bar", err.Error())
 	})
 
 	t.Run("new_stack", func(t *testing.T) {
 		stackMode = StackModeFull
 		err := New("foo")
 
-		assert.True(t, len(err.Stack()) > 0)
+		assert.True(t, len(err.Stack().Slice()) > 0)
 	})
 }
 
@@ -40,11 +40,18 @@ func TestFailure_Wrap(t *testing.T) {
 		assert.True(t, errors.Is(errC, errA))
 	})
 
+	t.Run("wrap_formatted_message", func(t *testing.T) {
+		errA := errors.New("baz")
+		errB := Wrap(errA, "foo: %s", "bar")
+
+		assert.Equal(t, "foo: bar: baz", errB.Error())
+	})
+
 	t.Run("wrap_stack", func(t *testing.T) {
 		stackMode = StackModeFull
 		err := Wrap(errors.New("foo"), "bar")
 
-		assert.True(t, len(err.Stack()) > 0)
+		assert.True(t, len(err.Stack().Slice()) > 0)
 	})
 
 	t.Run("wrap_nil", func(t *testing.T) {

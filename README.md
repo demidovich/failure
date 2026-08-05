@@ -72,8 +72,9 @@ func main() {
 
 	err := read()
 
-	if e, ok := err.(failure.Error); ok {
-		for _, line := range e.Stack() {
+	stack, ok := failure.ExtractStack(err)
+	if ok {
+		for _, line := range stack.Slice() {
 			fmt.Println(line)
 		}
 	}
@@ -219,6 +220,19 @@ read file error: open /tmp/missing_file: no such file or directory
 ```
 
 ## Stack
+
+Example 1
+
+```go
+stack, ok := failure.ExtractStack(err)
+if ok {
+    for _, line := range stack.Slice() {
+        fmt.Println(line)
+    }
+}
+```
+
+Example 2
 
 ```go
 if e, ok := err.(failure.Error); ok {
