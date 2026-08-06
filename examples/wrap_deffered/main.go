@@ -8,8 +8,7 @@ import (
 )
 
 func main() {
-	failure.SetStackMode(failure.StackModeRoot)
-	failure.SetStackRootDir("./")
+	failure.SetStackModeRoot(".")
 
 	err := a()
 	fmt.Printf("%+v\n", err)
@@ -18,18 +17,15 @@ func main() {
 func a() (err error) {
 	defer failure.WrapDeferred(&err, "a error")
 
-	err = b()
-	if err != nil {
+	if err = b(); err != nil {
 		return
 	}
 
-	err = c()
-	if err != nil {
+	if err = c(); err != nil {
 		return
 	}
 
-	err = d()
-	if err != nil {
+	if err = d(); err != nil {
 		return
 	}
 

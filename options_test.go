@@ -1,14 +1,45 @@
 package failure
 
 import (
-	"fmt"
+	"io"
 	"runtime"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOptions(t *testing.T) {
+	t.Run("ok_set_stack_mode_none", func(t *testing.T) {
+		stackMode = StackModeCaller
+		SetStackModeNone()
+
+		assert.Equal(t, StackModeNone, stackMode)
+	})
+
+	t.Run("ok_set_stack_mode_caller", func(t *testing.T) {
+		stackMode = StackModeNone
+		SetStackModeCaller()
+
+		assert.Equal(t, StackModeCaller, stackMode)
+	})
+
+	t.Run("ok_set_stack_mode_root", func(t *testing.T) {
+		stackMode = StackModeNone
+		SetStackModeRoot("/tmp")
+
+		assert.Equal(t, StackModeRoot, stackMode)
+		assert.Equal(t, "/tmp/", stackRootDir)
+	})
+
+	t.Run("ok_set_stack_mode_full", func(t *testing.T) {
+		stackMode = StackModeNone
+		SetStackModeFull()
+
+		assert.Equal(t, StackModeFull, stackMode)
+	})
+
 	t.Run("ok_set_stack_root_dir", func(t *testing.T) {
 		value := "/tmp"
 		SetStackRootDir(value)
@@ -16,51 +47,29 @@ func TestOptions(t *testing.T) {
 		assert.Equal(t, value+"/", stackRootDir)
 	})
 
-	t.Run("ok_set_stack_mode", func(t *testing.T) {
-		value := StackModeNone
-		SetStackMode(value)
+	t.Run("ok_set_stack_formatter", func(t *testing.T) {
+		t.Run("ok_set_stack_formatter", func(t *testing.T) {
+			SetStackFrameFormatter(func(w io.Writer, f runtime.Frame) {
+				io.WriteString(w, f.File)
+				io.WriteString(w, strconv.Itoa(f.Line))
+				io.WriteString(w, f.Function)
+			})
 
-		assert.Equal(t, value, stackMode)
+			b := &strings.Builder{}
+			stackFrameFormatter(b, runtime.Frame{
+				File:     "k",
+				Line:     1,
+				Function: "m",
+			})
+
+			assert.Equal(t, "k1m", b.String())
+		})
 	})
 
-	t.Run("ok_set_stack_prefix", func(t *testing.T) {
-		value := "----->"
-		SetStackPrefix(value)
+	t.Run("ok_set_stack_max_depth", func(t *testing.T) {
+		stackMaxDepth = 1
+		SetStackMaxDepth(2)
 
-		assert.Equal(t, value, stackPrefix)
-	})
-
-	t.Run("ok_set_stack_depth", func(t *testing.T) {
-		value := 10
-		SetStackDepth(value)
-
-		assert.Equal(t, value, stackDepth)
-	})
-
-	t.Run("fails_set_stack_depth_on_invalid_value", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Errorf("don`t panic")
-			}
-		}()
-
-		SetStackDepth(0)
-		SetStackDepth(-1)
-	})
-
-	t.Run("ok_set_stackframe_formatter", func(t *testing.T) {
-		formatter := func(f runtime.Frame) string {
-			return fmt.Sprintf("%s %d %s", f.File, f.Line, f.Function)
-		}
-
-		frame := runtime.Frame{
-			File:     "a",
-			Line:     10,
-			Function: "b",
-		}
-
-		SetStackframeFormatter(formatter)
-
-		assert.Equal(t, "a 10 b", stackframeFormatter(frame))
+		assert.Equal(t, 2, stackMaxDepth)
 	})
 }

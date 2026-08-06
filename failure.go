@@ -10,13 +10,18 @@ type Error interface {
 	Stack() *Stack
 }
 
+var (
+	_ fmt.Formatter = (*failure)(nil)
+	_ fmt.Formatter = (*wrappedFailure)(nil)
+)
+
 type failure struct {
 	message string
 	stack   *Stack
 }
 
 // New makes an Error with formatted message from the given value.
-func New(format string, args ...any) Error {
+func New(format string, args ...any) error {
 	if len(args) > 0 {
 		format = fmt.Sprintf(format, args...)
 	}
@@ -36,7 +41,7 @@ func (f *failure) Stack() *Stack {
 }
 
 func (f *failure) Format(s fmt.State, verb rune) {
-	format(s, verb, f.message, f.stack.String())
+	format(s, verb, f.message, f.stack)
 }
 
 type wrappedFailure struct {
@@ -46,7 +51,7 @@ type wrappedFailure struct {
 }
 
 // Wrap makes an wrapped Error with formatted message from the given value.
-func Wrap(err error, format string, args ...any) Error {
+func Wrap(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}
@@ -106,34 +111,38 @@ func (w *wrappedFailure) Stack() *Stack {
 }
 
 func (w *wrappedFailure) Format(s fmt.State, verb rune) {
-	format(s, verb, w.Error(), w.stack.String())
+	format(s, verb, w.Error(), w.stack)
 }
 
 func (w *wrappedFailure) Unwrap() error {
 	return w.cause
 }
 
-// Universal formatter for wrapped and unwrapped errors
-func format(s fmt.State, verb rune, message string, stack string) {
+// Universal formatter for wrapped and unwrapped errors.
+func format(s fmt.State, verb rune, message string, stack *Stack) {
 	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			_, _ = io.WriteString(s, message)
-			switch stackMode {
-			case StackModeNone:
-			case StackModeCaller:
-				_, _ = io.WriteString(s, "\n\nCaller:")
-				_, _ = io.WriteString(s, stack)
-			default:
-				_, _ = io.WriteString(s, "\n\nStack Trace:")
-				_, _ = io.WriteString(s, stack)
-			}
-			return
-		}
-		fallthrough
 	case 's':
-		_, _ = io.WriteString(s, message)
+		io.WriteString(s, message)
 	case 'q':
 		fmt.Fprintf(s, "%q", message)
+	case 'v':
+		io.WriteString(s, "Error: ")
+		io.WriteString(s, message)
+		if !s.Flag('+') || stackMode == StackModeNone {
+			return
+		}
+
+		switch stackMode {
+		case StackModeCaller:
+			io.WriteString(s, "\nCaller: ")
+			stackFrameFormatter(s, stack.frames[0])
+		default:
+			io.WriteString(s, "\n\nStack Trace:")
+			for i := range stack.frames {
+				io.WriteString(s, "\n")
+				io.WriteString(s, stackLinePrefix)
+				stackFrameFormatter(s, stack.frames[i])
+			}
+		}
 	}
 }

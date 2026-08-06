@@ -8,10 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testingWrappedFailure interface {
-	Unwrap() error
-}
-
 func TestFailure_New(t *testing.T) {
 	t.Run("new_default", func(t *testing.T) {
 		err := New("foo")
@@ -26,8 +22,10 @@ func TestFailure_New(t *testing.T) {
 	t.Run("new_stack", func(t *testing.T) {
 		stackMode = StackModeFull
 		err := New("foo")
+		stack, ok := ExtractStack(err)
 
-		assert.True(t, len(err.Stack().Slice()) > 0)
+		assert.True(t, ok)
+		assert.NotEmpty(t, stack.Frames())
 	})
 }
 
@@ -37,7 +35,7 @@ func TestFailure_Wrap(t *testing.T) {
 		errB := fmt.Errorf("%w", errA)
 		errC := Wrap(errB, "error C")
 
-		assert.True(t, errors.Is(errC, errA))
+		assert.ErrorIs(t, errC, errA)
 	})
 
 	t.Run("wrap_formatted_message", func(t *testing.T) {
@@ -50,14 +48,16 @@ func TestFailure_Wrap(t *testing.T) {
 	t.Run("wrap_stack", func(t *testing.T) {
 		stackMode = StackModeFull
 		err := Wrap(errors.New("foo"), "bar")
+		stack, ok := ExtractStack(err)
 
-		assert.True(t, len(err.Stack().Slice()) > 0)
+		assert.True(t, ok)
+		assert.NotEmpty(t, stack.Frames())
 	})
 
 	t.Run("wrap_nil", func(t *testing.T) {
 		err := Wrap(nil, "")
 
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("wrap_with_formatted_message", func(t *testing.T) {
@@ -65,28 +65,25 @@ func TestFailure_Wrap(t *testing.T) {
 		errB := fmt.Errorf("%w", errA)
 		errC := Wrap(errB, "error C")
 
-		assert.True(t, errors.Is(errC, errA))
+		assert.ErrorIs(t, errC, errA)
 	})
 
 	t.Run("wrap_format_with_verb_v", func(t *testing.T) {
-		stackMode = "none"
+		stackMode = StackModeNone
 		errA := errors.New("error A")
 		errB := Wrap(errA, "error B")
 		msg := fmt.Sprintf("%v", errB)
 
-		assert.Equal(t, "error B: error A", msg)
+		assert.Equal(t, "Error: error B: error A", msg)
 	})
 
 	t.Run("wrap_unwrap_cause", func(t *testing.T) {
 		errA := errors.New("error A")
 		errB := Wrap(errA, "error B")
+		wrap, ok := errB.(*wrappedFailure) //nolint:errorlint
 
-		var cause error
-		if e, ok := errB.(testingWrappedFailure); ok {
-			cause = e.Unwrap()
-		}
-
-		assert.Equal(t, "error A", cause.Error())
+		assert.True(t, ok)
+		assert.Equal(t, "error A", wrap.Unwrap().Error())
 	})
 
 	t.Run("wrap_cause_with_empty_message", func(t *testing.T) {
@@ -110,16 +107,16 @@ func TestFailure_WrapDeferred(t *testing.T) {
 		assert.Equal(t, "foo: bar", err.Error())
 	})
 
-	t.Run("wrap_deferred_on_failure_error", func(t *testing.T) {
+	t.Run("wrap_deferred_with_formatted_message", func(t *testing.T) {
 		var wrapDeferredFailure = func() (err error) {
-			defer WrapDeferred(&err, "foo")
+			defer WrapDeferred(&err, "foo %s", "123")
 			err = New("bar")
 			return
 		}
 
 		err := wrapDeferredFailure()
 
-		assert.Equal(t, "foo: bar", err.Error())
+		assert.Equal(t, "foo 123: bar", err.Error())
 	})
 
 	t.Run("wrap_deferred_on_wrapped_failure", func(t *testing.T) {
@@ -143,6 +140,6 @@ func TestFailure_WrapDeferred(t *testing.T) {
 
 		err := wrapDeferredNil()
 
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }

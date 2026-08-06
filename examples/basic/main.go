@@ -8,12 +8,29 @@ import (
 )
 
 func main() {
-	failure.SetStackMode(failure.StackModeRoot)
-	failure.SetStackRootDir("./")
-	failure.SetStackPrefix("  --- ")
+	failure.SetStackModeRoot(".") // Do not do this in production. Use pwd only.
 
 	err := read()
-	fmt.Printf("%+v\n", err)
+
+	// Example 1
+
+	fmt.Printf("%+v\n\n", err)
+
+	// Example 2
+
+	stack, ok := failure.ExtractStack(err)
+	if ok {
+		fmt.Println(stack.Serialize(", "))
+	}
+
+	// Example 3
+
+	stack, ok = failure.ExtractStack(err)
+	if ok {
+		for _, line := range stack.FramesFormatted() {
+			fmt.Println(line)
+		}
+	}
 }
 
 func read() error {

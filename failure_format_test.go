@@ -2,6 +2,8 @@ package failure
 
 import (
 	"fmt"
+	"io"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -17,78 +19,91 @@ func bar() error {
 }
 
 func TestFormat(t *testing.T) {
-	t.Run("stackmode_none", func(t *testing.T) {
-		SetStackMode(StackModeNone)
+	frameFormatter := func(w io.Writer, f runtime.Frame) {
+		io.WriteString(w, RelativePath(f.File))
+		io.WriteString(w, " ")
+		io.WriteString(w, f.Function)
+	}
 
-		err := bar()
-		msg := fmt.Sprintf("%+v", err)
+	t.Run("stack_mode_none", func(t *testing.T) {
+		SetStackModeNone()
 
-		assert.Equal(t, "foo", msg)
+		var (
+			err    = bar()
+			actual = fmt.Sprintf("%+v", err)
+		)
+
+		assert.Equal(t, "Error: foo", actual)
 	})
 
-	t.Run("stackmode_caller", func(t *testing.T) {
-		SetStackMode(StackModeCaller)
+	t.Run("stack_mode_caller", func(t *testing.T) {
+		SetStackModeCaller()
 		SetStackRootDir(".")
-		SetStackPrefix("")
+		SetStackFrameFormatter(frameFormatter)
 
-		err := bar()
-		msg := fmt.Sprintf("%+v", err)
-		expected := strings.Join([]string{
-			"foo\n",
-			"Caller:",
-			"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
-		}, "\n")
+		var (
+			err      = bar()
+			actual   = fmt.Sprintf("%+v", err)
+			expected = strings.Join([]string{
+				"Error: foo",
+				"Caller: failure_format_test.go github.com/demidovich/failure.foo",
+			}, "\n")
+		)
 
-		assert.Equal(t, expected, msg)
+		assert.Equal(t, expected, actual)
 	})
 
-	t.Run("stackmode_root", func(t *testing.T) {
-		SetStackMode(StackModeRoot)
+	t.Run("stack_mode_root", func(t *testing.T) {
+		SetStackModeRoot(".")
+		SetStackFrameFormatter(frameFormatter)
+
+		var (
+			err      = bar()
+			actual   = fmt.Sprintf("%+v", err)
+			prefix   = stackLinePrefix
+			expected = strings.Join([]string{
+				"Error: foo\n",
+				"Stack Trace:",
+				prefix + "failure_format_test.go github.com/demidovich/failure.foo",
+				prefix + "failure_format_test.go github.com/demidovich/failure.bar",
+			}, "\n")
+		)
+
+		assert.Contains(t, actual, expected)
+	})
+
+	t.Run("stack_mode_full", func(t *testing.T) {
+		SetStackModeFull()
 		SetStackRootDir(".")
-		SetStackPrefix("")
+		SetStackFrameFormatter(frameFormatter)
 
-		err := bar()
-		msg := fmt.Sprintf("%+v", err)
-		expected := strings.Join([]string{
-			"foo\n",
-			"Stack Trace:",
-			"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
-			"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
-			"failure_format_test.go:50 (github.com/demidovich/failure.TestFormat.func3)",
-		}, "\n")
+		var (
+			err      = bar()
+			actual   = fmt.Sprintf("%+v", err)
+			prefix   = stackLinePrefix
+			expected = strings.Join([]string{
+				"Error: foo\n",
+				"Stack Trace:",
+				prefix + "failure_format_test.go github.com/demidovich/failure.foo",
+				prefix + "failure_format_test.go github.com/demidovich/failure.bar",
+			}, "\n")
+		)
 
-		assert.Equal(t, expected, msg)
-	})
-
-	t.Run("stackmode_full", func(t *testing.T) {
-		SetStackMode(StackModeFull)
-		SetStackPrefix("")
-
-		err := bar()
-		msg := fmt.Sprintf("%+v", err)
-		prefix := strings.Join([]string{
-			"foo\n",
-			"Stack Trace:",
-			"failure_format_test.go:12 (github.com/demidovich/failure.foo)",
-			"failure_format_test.go:16 (github.com/demidovich/failure.bar)",
-			"failure_format_test.go:67 (github.com/demidovich/failure.TestFormat.func4)",
-		}, "\n")
-
-		assert.Contains(t, msg, prefix)
+		assert.Contains(t, actual, expected)
 	})
 
 	t.Run("format_verbs", func(t *testing.T) {
+		SetStackModeFull()
+
 		tests := []struct {
 			message  string
 			expected string
 			verb     string
 		}{
-			{"foo", "foo", "%v"},
+			{"foo", "Error: foo", "%v"},
 			{"foo", "foo", "%s"},
 			{"foo", "\"foo\"", "%q"},
 		}
-
-		SetStackMode(StackModeFull)
 
 		for _, tt := range tests {
 			err := New(tt.message)
@@ -100,11 +115,13 @@ func TestFormat(t *testing.T) {
 	})
 
 	t.Run("format_s_verb_without_stack", func(t *testing.T) {
-		SetStackMode(StackModeNone)
+		SetStackModeNone()
 
-		err := bar()
-		msg := fmt.Sprintf("%s", err)
+		var (
+			err    = bar()
+			actual = fmt.Sprintf("%s", err)
+		)
 
-		assert.Equal(t, "foo", msg)
+		assert.Equal(t, "foo", actual)
 	})
 }

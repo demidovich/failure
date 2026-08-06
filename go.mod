@@ -1,6 +1,6 @@
 module github.com/demidovich/failure
 
-go 1.18
+go 1.18.0
 
 require github.com/stretchr/testify v1.11.1
 

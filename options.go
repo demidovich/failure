@@ -1,59 +1,113 @@
 package failure
 
 import (
-	"fmt"
+	"io"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
+	"sync"
 )
 
-type StackMode string
+type StackMode int
 
 const (
-	StackModeNone   StackMode = "none"
-	StackModeCaller StackMode = "caller"
-	StackModeRoot   StackMode = "root"
-	StackModeFull   StackMode = "full"
-	skipStackFrames           = 3
+	StackModeNone StackMode = iota + 1
+	StackModeCaller
+	StackModeRoot
+	StackModeFull
+)
+
+const (
+	stackSkipFrames = 3
 )
 
 var (
-	stackMode    StackMode = StackModeFull
-	stackRootDir string
-	stackPrefix  string
-	stackDepth   int = 32
+	stackMode       = StackModeFull
+	stackRootDir    string
+	stackMaxDepth   = 32
+	stackLinePrefix = " -> "
+	optionsMu       = sync.Mutex{}
 )
 
-var stackframeFormatter = func(f runtime.Frame) string {
-	return fmt.Sprintf("%s%s:%d (%s)", stackPrefix, RelativePath(f.File), f.Line, f.Function)
-}
+var stackFrameFormatter = func(w io.Writer, f runtime.Frame) {
+	io.WriteString(w, RelativePath(f.File))
+	io.WriteString(w, ":")
+	io.WriteString(w, strconv.Itoa(f.Line))
 
-// SetStackframeFormatter set custom stack frame formatter
-func SetStackframeFormatter(f func(f runtime.Frame) string) {
-	stackframeFormatter = f
-}
-
-// Set stackMode variable for change stack trace verbosity
-func SetStackMode(value StackMode) {
-	stackMode = value
-}
-
-// SetStackRootDir set stackRootDir variable for shorten file names in stack trace
-func SetStackRootDir(value string) {
-	stackRootDir, _ = filepath.Abs(value)
-	if stackRootDir != "/" {
-		stackRootDir = stackRootDir + "/"
+	if idx := strings.LastIndex(f.Function, "."); idx != -1 {
+		io.WriteString(w, " - ")
+		io.WriteString(w, f.Function[idx+1:])
+		io.WriteString(w, "()")
 	}
 }
 
-// SetStackPrefix set stackPrefix variable for readability logs
-func SetStackPrefix(value string) {
-	stackPrefix = value
+// SetStackModeNone disables the stack trace.
+func SetStackModeNone() {
+	optionsMu.Lock()
+	defer optionsMu.Unlock()
+
+	stackMode = StackModeNone
 }
 
-// SetStackPrefix set stackDepth variable
-func SetStackDepth(value int) {
-	if value < 1 {
-		panic("stack depth cannot be less than 1")
+// SetStackModeCaller enables a stack trace with the initial caller of the failure.
+func SetStackModeCaller() {
+	optionsMu.Lock()
+	defer optionsMu.Unlock()
+
+	stackMode = StackModeCaller
+}
+
+// SetStackModeRoot enables a stack trace limited to project files only.
+//   - buildPath: Absolute path to the application root.
+//     Don't pass relative paths.
+//     Use the value from ldflags.
+func SetStackModeRoot(buildPath string) {
+	optionsMu.Lock()
+	defer optionsMu.Unlock()
+
+	setStackRootDir(buildPath)
+	stackMode = StackModeRoot
+}
+
+// SetStackModeFull enables a full stack trace.
+func SetStackModeFull() {
+	optionsMu.Lock()
+	defer optionsMu.Unlock()
+
+	stackMode = StackModeFull
+}
+
+// SetStackRootDir set stackRootDir variable for shorten file paths in stack trace.
+//   - buildPath: Absolute path to the application root.
+//     Don't pass relative paths.
+//     Use the value from ldflags.
+func SetStackRootDir(buildPath string) {
+	optionsMu.Lock()
+	defer optionsMu.Unlock()
+
+	setStackRootDir(buildPath)
+}
+
+func setStackRootDir(buildPath string) {
+	stackRootDir, _ = filepath.Abs(buildPath)
+	if !strings.HasSuffix(stackRootDir, "/") {
+		stackRootDir += "/"
 	}
-	stackDepth = value
+}
+
+// SetStackFrameFormatter set custom stack frame formatter
+func SetStackFrameFormatter(f func(w io.Writer, f runtime.Frame)) {
+	optionsMu.Lock()
+	defer optionsMu.Unlock()
+
+	stackFrameFormatter = f
+}
+
+// SetStackMaxDepth set stack trace depth
+func SetStackMaxDepth(value int) {
+	optionsMu.Lock()
+	defer optionsMu.Unlock()
+
+	stackMaxDepth = value
 }

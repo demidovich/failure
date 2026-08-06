@@ -2,6 +2,7 @@ package failure
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,8 +21,8 @@ func TestStack_ExtractStack(t *testing.T) {
 		stack, ok := ExtractStack(err)
 
 		assert.True(t, ok)
-		assert.NotEmpty(t, stack.Slice())
-		assert.Contains(t, stack.Slice()[0], "testingExtractStackMock")
+		assert.NotNil(t, stack)
+		assert.Contains(t, stack.Frames()[0].Function, "testingExtractStackMock")
 	})
 
 	t.Run("extract_from_failure_wrapped_error", func(t *testing.T) {
@@ -32,8 +33,8 @@ func TestStack_ExtractStack(t *testing.T) {
 		stack, ok := ExtractStack(err)
 
 		assert.True(t, ok)
-		assert.NotEmpty(t, stack.Slice())
-		assert.Contains(t, stack.Slice()[0], "testingExtractStackMock")
+		assert.NotNil(t, stack)
+		assert.Contains(t, stack.Frames()[0].Function, "testingExtractStackMock")
 	})
 
 	t.Run("extract_from_deep_wrapped_error", func(t *testing.T) {
@@ -46,8 +47,8 @@ func TestStack_ExtractStack(t *testing.T) {
 		stack, ok := ExtractStack(err)
 
 		assert.True(t, ok)
-		assert.NotEmpty(t, stack)
-		assert.Contains(t, stack.Slice()[0], "testingExtractStackMock")
+		assert.NotNil(t, stack)
+		assert.Contains(t, stack.Frames()[0].Function, "testingExtractStackMock")
 	})
 }
 
@@ -56,49 +57,42 @@ func TestStack(t *testing.T) {
 		stackMode = StackModeFull
 		stack := newStack()
 
-		assert.NotNil(t, stack.Frames())
+		assert.NotEmpty(t, stack.Frames())
 	})
 
 	t.Run("frames_on_nil_stack", func(t *testing.T) {
 		var stack *Stack
 
-		assert.Nil(t, stack.Frames())
+		assert.Empty(t, stack.Frames())
 	})
 
-	t.Run("slice", func(t *testing.T) {
+	t.Run("frames_formatted", func(t *testing.T) {
 		stackMode = StackModeFull
 		stack := newStack()
 
-		assert.NotEmpty(t, stack.Slice())
+		assert.NotEmpty(t, stack.FramesFormatted())
 	})
 
-	t.Run("slice_on_nil_stack", func(t *testing.T) {
+	t.Run("frames_formatted_on_nil_stack", func(t *testing.T) {
 		var stack *Stack
 
-		assert.Empty(t, stack.Slice())
+		assert.Empty(t, stack.FramesFormatted())
 	})
 
-	t.Run("string", func(t *testing.T) {
+	t.Run("serialize", func(t *testing.T) {
 		stackMode = StackModeFull
 		stack := newStack()
+		serialized := stack.Serialize(", ")
+		splitted := strings.Split(serialized, ", ")
 
-		assert.NotEmpty(t, stack.String())
+		fmt.Println(serialized)
+
+		assert.Len(t, stack.Frames(), len(splitted))
 	})
 
-	t.Run("string_on_nil_stack", func(t *testing.T) {
+	t.Run("serialize_on_nil_stack", func(t *testing.T) {
 		var stack *Stack
 
-		assert.Empty(t, stack.String())
-	})
-
-	t.Run("slice_cache", func(t *testing.T) {
-		stackMode = StackModeFull
-		stack := newStack()
-
-		assert.False(t, stack.hasSlice)
-		assert.NotEmpty(t, stack.Slice())
-
-		assert.True(t, stack.hasSlice)
-		assert.NotEmpty(t, stack.Slice())
+		assert.Empty(t, stack.Serialize(", "))
 	})
 }

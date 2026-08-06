@@ -2,12 +2,56 @@
 
 [![GoReport][report-img]][report] [![Coverage Status][cov-img]][cov]
 
-Package `failure` is an error handling library for Go with readable stack traces.
-
 [report-img]: https://goreportcard.com/badge/github.com/demidovich/failure
 [report]: https://goreportcard.com/report/github.com/demidovich/failure
 [cov-img]: https://codecov.io/gh/demidovich/failure/branch/master/graph/badge.svg
 [cov]: https://codecov.io/gh/demidovich/failure
+
+Package `failure` is an error handling library for Go with readable stack traces. Package features:
+
+- Wrap an error multiple times without duplicating the stack trace
+- Wrap errors using defer
+- Customize stack trace formatting
+- Method to get the stack trace from an error
+- Method to serialize the stack trace into a string
+
+- [Problem](#problem)
+- [Usage](#usage)
+- [Wrap deferred](#wrap-deferred)
+- [Stack trace](#stack-trace)
+- [Stack trace mode](#stack-trace-mode)
+- [Stack frame formatting](#stack-frame-formatting)
+- [Build](#build)
+- [Benchmarks](#benchmarks)
+
+## Problem
+
+Nothing new here. This topic has been written about many times.
+
+The Go philosophy says that stack traces are not needed because they are too slow and expensive. However, to fix a bug, you must know exactly where it happened — the file and the line number. Because of this, Go developers have to act like detectives, spending time on investigations just to find the source of the problem.
+
+I came to Go from languages with Exceptions, and I know how much easier development is when you can find the exact place of an error instantly. This is not a problem in small services. But services do not stay small forever; they grow bigger over time. At first, you don't notice this problem. But as the project grows, it wastes more and more of your time.
+
+If the error message is unique, everything is simple. But that rarely happens. Many developers even wrap errors and manually add the function name. It seems that people who refused to use stack traces have simply reinvented them.
+
+What we see in logs
+
+```
+processing item #89234 terminated unexpectedly: sql: transaction has already been committed or rolled back: context canceled
+```
+
+What we actually need to see
+
+```
+broken_file.go:100
+```
+
+The ideal option
+
+```
+processing item #89234 terminated unexpectedly: sql: transaction has already been committed or rolled back: context canceled
+broken_file.go:100
+```
 
 ## Usage
 
@@ -22,59 +66,26 @@ import (
 )
 
 func main() {
-	failure.SetStackMode(failure.StackModeRoot)
-	failure.SetStackRootDir("./")
-	failure.SetStackPrefix("  --- ")
+	failure.SetStackModeRoot(".") // Do not do this in production. Use pwd only.
 
 	err := read()
-	fmt.Printf("%+v\n", err)
-}
 
-func read() error {
-	return missingRead()
-}
+	// Example 1
 
-func missingRead() error {
-    file := "/tmp/missing_file"
-	_, err := os.ReadFile(file)
-	return failure.Wrap(err, "read file %serror", file)
-}
-```
+	fmt.Printf("%+v\n\n", err)
 
-```
-read file error: open /tmp/missing_file: no such file or directory
-
-Stack Trace:
- --- main.go:25 (main.missingRead)
- --- main.go:20 (main.read)
- --- main.go:15 (main.main)
-```
-
-Customize stack frame formatter
-
-```go
-package main
-
-import (
-	"fmt"
-	"os"
-	"runtime"
-
-	"github.com/demidovich/failure"
-)
-
-func main() {
-	failure.SetStackMode(failure.StackModeRoot)
-	failure.SetStackRootDir("./")
-	failure.SetStackframeFormatter(func(f runtime.Frame) string {
-		return fmt.Sprintf("%s (%d)", failure.RelativePath(f.File), f.Line)
-	})
-
-	err := read()
+	// Example 2
 
 	stack, ok := failure.ExtractStack(err)
 	if ok {
-		for _, line := range stack.Slice() {
+		fmt.Println(stack.Serialize(", "))
+	}
+
+	// Example 3
+
+	stack, ok = failure.ExtractStack(err)
+	if ok {
+		for _, line := range stack.FramesFormatted() {
 			fmt.Println(line)
 		}
 	}
@@ -90,176 +101,254 @@ func missingRead() error {
 }
 ```
 
+Output example 1
 ```
-main.go (33)
-main.go (28)
-main.go (18)
+Error: read file error: open /tmp/missing_file: no such file or directory
+
+Stack Trace:
+ -> main.go:42 - missingRead()
+ -> main.go:37 - read()
+ -> main.go:13 - main()
 ```
 
-Wrap deferred
+Output example 2
+```
+main.go:42 - missingRead(), main.go:37 - read(), main.go:13 - main()
+```
+
+Output example 3
+```
+main.go:42 - missingRead()
+main.go:37 - read()
+main.go:13 - main()
+```
+
+## Wrap deferred
 
 ```go
-package main
-
-import (
-	"errors"
-	"fmt"
-
-	"github.com/demidovich/failure"
-)
-
-func main() {
-	failure.SetStackMode(failure.StackModeRoot)
-	failure.SetStackRootDir("./")
-
-	err := a()
-	fmt.Printf("%+v\n", err)
-}
-
 func a() (err error) {
 	defer failure.WrapDeferred(&err, "a error")
 
-	err = b()
-	if err != nil {
+	if err = b(); err != nil {
 		return
 	}
 
-	err = c()
-	if err != nil {
+	if err = c(); err != nil { // failed
 		return
 	}
 
-	err = d()
-	if err != nil {
+	if err = d(); err != nil {
 		return
 	}
 
 	return nil
-}
-
-func b() error {
-	return nil
-}
-
-func c() error {
-	return nil
-}
-
-func d() error {
-	return errors.New("c error")
 }
 ```
 
+Output
 ```
-a error: c error
+Error: a error: c error
 
 Stack Trace:
-main.go:33 (main.a)
-main.go:14 (main.main)
+ -> main.go:29 - a()
+ -> main.go:13 - main()
 ```
 
-## StackMode
+## Stack trace
 
-Сontrol of stack trace display mode.
+How to get a stack trace from an error.
+
+```go
+if stack, ok := failure.ExtractStack(err); ok {
+
+}
+```
+
+Slice of formatted stack frames.
+
+```go
+if stack, ok := failure.ExtractStack(err); ok {
+    for _, line := range stack.FramesFormatted() {
+        fmt.Println(line)
+    }
+}
+```
+
+Serialize stack frames. They will be formatted.
+
+```go
+if stack, ok := failure.ExtractStack(err); ok {
+    fmt.Println(stack.Serialize(", "))
+}
+```
+
+Slice of raw stack frames.
+
+```go
+if stack, ok := failure.ExtractStack(err); ok {
+	for _, frame := range e.Frames() {
+		fmt.Println(frame.Function)
+	}
+}
+```
+
+## Stack trace mode
+
+Stack trace mode controls the stack trace details. Long paths and frames from internal Go libraries are just noise. You do not need them to find errors.
 
 #### Full
 
 ```go
-failure.SetStackMode(failure.StackModeFull)
+failure.SetStackModeFull()
 ```
 
 ```
-read file error: open /tmp/missing_file: no such file or directory
+Error: read file error: open /tmp/missing_file: no such file or directory
 
 Stack Trace:
- --- /mnt/hdata/code/go/failure/examples/basic/main.go:25 (main.missingRead)
- --- /mnt/hdata/code/go/failure/examples/basic/main.go:20 (main.read)
- --- /mnt/hdata/code/go/failure/examples/basic/main.go:15 (main.main)
- --- /usr/lib/go-1.24/src/runtime/proc.go:283 (runtime.main)
- --- /usr/lib/go-1.24/src/runtime/asm_amd64.s:1700 (runtime.goexit)
+ -> /mnt/hdata/code/failure/examples/basic/main.go:35 - missingRead()
+ -> /mnt/hdata/code/failure/examples/basic/main.go:30 - read()
+ -> /mnt/hdata/code/failure/examples/basic/main.go:13 - main()
+ -> /usr/lib/go-1.26/src/runtime/proc.go:290 - main()
+ -> /usr/lib/go-1.26/src/runtime/asm_amd64.s:1771 - goexit()
 ```
 
 #### Root
 
+> [!NOTE]
+> Do not use relative paths in `SetStackModeRoot()` and `SetStackRootDir()`. See more in the [build section](#build).
+
 ```go
-failure.SetStackMode(failure.StackModeRoot)
-failure.SetStackRootDir("./")
+failure.SetStackModeRoot(buildPath)
 ```
 
 ```
-read file error: open /tmp/missing_file: no such file or directory
+Error: read file error: open /tmp/missing_file: no such file or directory
 
 Stack Trace:
- --- main.go:25 (main.missingRead)
- --- main.go:20 (main.read)
- --- main.go:15 (main.main)
+ -> main.go:25 - missingRead()
+ -> main.go:20 - read()
+ -> main.go:15 - main()
 ```
 
 #### Caller
 
+Example 1
+
 ```go
-failure.SetStackMode(failure.StackModeCaller)
-failure.SetStackRootDir("./")
+failure.SetStackModeCaller()
 ```
 
 ```
-read file error: open /tmp/missing_file: no such file or directory
+Error: read file error: open /tmp/missing_file: no such file or directory
+Caller: /mnt/hdata/code/failure/examples/basic/main.go:36 - missingRead()
+```
 
-Caller:
- --- main.go:25 (main.missingRead)
+Example 2
+
+```go
+failure.SetStackModeCaller()
+failure.SetStackRootDir(buildPath)
+```
+
+```
+Error: read file error: open /tmp/missing_file: no such file or directory
+Caller: main.go:37 - missingRead()
 ```
 
 #### None
 
 ```go
-failure.SetStackMode(failure.StackModeNone)
+failure.SetStackModeNone()
 ```
 
 ```
-read file error: open /tmp/missing_file: no such file or directory
+Error: read file error: open /tmp/missing_file: no such file or directory
 ```
 
-## Stack
+## Stack frame formatting
+
+Custom stack frame formatting is configured during application initialization.
+
+> [!NOTE]
+> The line prefix ` -> ` is defined within the package and is added only when the error is converted into string.
 
 Example 1
 
 ```go
-stack, ok := failure.ExtractStack(err)
-if ok {
-    for _, line := range stack.Slice() {
-        fmt.Println(line)
-    }
+failure.SetStackFrameFormatter(func(w io.Writer, f runtime.Frame) {
+	io.WriteString(w, failure.RelativePath(f.File))
+	io.WriteString(w, ":")
+	io.WriteString(w, strconv.Itoa(f.Line))
+})
+```
+
+```json
+{
+  "log.level": "ERROR",
+  "message": "queue: SigninStarted: dial tcp :0: connect: connection refused",
+  "error.stack_trace": "internal/queue/handlers/signin_started.go:46, internal/queue/queue.go:191"
 }
 ```
 
 Example 2
 
 ```go
-if e, ok := err.(failure.Error); ok {
-	for _, line := range e.Stack() {
-		fmt.Println(line)
+failure.SetStackFrameFormatter(func(w io.Writer, f runtime.Frame) {
+	io.WriteString(w, failure.RelativePath(f.File))
+	io.WriteString(w, ":")
+	io.WriteString(w, strconv.Itoa(f.Line))
+
+	if idx := strings.LastIndex(f.Function, "/"); idx != -1 {
+		io.WriteString(w, " - ")
+		io.WriteString(w, f.Function[idx+1:])
+		io.WriteString(w, "()")
 	}
+})
+```
+
+```json
+{
+  "log.level": "ERROR",
+  "message": "queue: SigninStarted: dial tcp :0: connect: connection refused",
+  "error.stack_trace": "internal/queue/handlers/signin_started.go:46 - handlers.signinStarted.Handle(), internal/queue/queue.go:191 - queue.(*Queue).processTask.func1()"
 }
 ```
 
-```
-main.go:31 (main.missingRead)
-main.go:26 (main.read)
-main.go:15 (main.main)
-```
+## Build
 
-## Stackframe formatting
+Do not use relative paths in `SetStackModeRoot()` and `SetStackRootDir()`. This will work with `go run` but will break with `go build`.
 
 ```go
-formatter := func(f runtime.Frame) string {
-    return fmt.Sprintf(" -> %s, %s:%d", f.Function, failure.RelativePath(f.File), f.Line)
-}
+var buildPath string
 
-failure.SetStackframeFormatter(formatter)
+func main() {
+	failure.SetStackModeRoot(buildPath)
+    ...
 ```
 
+```shell
+go build -ldflags "-X main.buildPath=$(pwd)" ./cmd/app/app.go
 ```
- -> main.missingRead, main.go:30
- -> main.read, main.go:25
- -> main.main, main.go:20
+
+## Benchmarks
+
+I wanted to see how slow stack traces really are. Yes, there is a performance cost, but are a few extra allocations and nanoseconds that important? I think that in 99% of projects, this cost does not matter at all.
+
 ```
+go clean -cache -testcache
+go test -benchmem -count=1 -a ./benchmark/fmt_discard/ -bench=.
+goos: linux
+goarch: amd64
+pkg: trace_errors/benchmark/fmt_discard
+cpu: Intel(R) Core(TM) i5-10500T CPU @ 2.30GHz
+Benchmark_std_errors_no_stack-12                     	 1000000	      1136 ns/op	     640 B/op	       9 allocs/op
+Benchmark_std_errors_caller-12                       	  516914	      2481 ns/op	     968 B/op	      14 allocs/op
+Benchmark_github_com_demidovich_failure_caller-12    	  381114	      4782 ns/op	    2457 B/op	      24 allocs/op
+Benchmark_github_com_demidovich_failure_root-12      	  288465	      4906 ns/op	    3258 B/op	      24 allocs/op
+Benchmark_github_com_demidovich_failure_full-12      	  215730	      7042 ns/op	    3271 B/op	      27 allocs/op
+PASS
+ok  	trace_errors/benchmark/fmt_discard	12.936s
+```
+
+[github.com/demidovich/go-error-trace-test](https://github.com/demidovich/go-error-trace-test)

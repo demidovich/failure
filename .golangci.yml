@@ -1,0 +1,42 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - sqlclosecheck
+    - rowserrcheck
+    - copyloopvar
+    - dogsled
+    - dupl
+    - errorlint
+    # - funlen
+    - gocheckcompilerdirectives
+    - gocritic
+    - gocyclo
+    - godox
+    # - goprintffuncname функциz с format и arg... должна оканчиваться на f
+    - gosec
+    - govet
+    - intrange
+    - ineffassign
+    - misspell
+    - nakedret
+    - noctx
+    - nolintlint
+    # - revive
+    - staticcheck
+    - testifylint
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+    - prealloc
+
+  settings:
+    errcheck:
+      exclude-functions:
+        - io.WriteString
+        - (*bytes.Buffer).WriteString
+    gosec:
+      excludes:
+        - G104

@@ -2,7 +2,7 @@ help: ## This help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "\033[36m%-25s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 lint: ## Run static tests
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
 
 test: ## Run unit tests
 	go run github.com/rakyll/gotest@latest -v $(go list ./... | grep -v /examples/)
