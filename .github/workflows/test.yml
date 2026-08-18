@@ -17,16 +17,32 @@ jobs:
     name: test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/setup-go@v2
     - uses: actions/checkout@v4
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.18'
+
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v7
+      with:
+        version: v2.6.0
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        only-new-issues: false
+        skip-cache: false
+        install-mode: binary
+
     - name: Run tests
       run: make test
+
     - name: Check test coverage
       run: make coverage
+ 
+    - name: Check coverage file exists
+      run: ls -lh ./coverage.txt
+
     - name: Upload coverage report to CodeCov
       uses: codecov/codecov-action@v5
       with:
         token: ${{secrets.CODECOV_TOKEN}}
-        file: ./coverage.txt
+        files: ./coverage.txt

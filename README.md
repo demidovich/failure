@@ -7,13 +7,7 @@
 [cov-img]: https://codecov.io/gh/demidovich/failure/branch/master/graph/badge.svg
 [cov]: https://codecov.io/gh/demidovich/failure
 
-Package `failure` is an error handling library for Go with readable stack traces. Package features:
-
-- Wrap an error multiple times without duplicating the stack trace
-- Wrap errors using defer
-- Customize stack trace formatting
-- Method to get the stack trace from an error
-- Method to serialize the stack trace into a string
+Package `failure` is an error handling library for Go with readable stack traces. 
 
 - [Problem](#problem)
 - [Usage](#usage)
@@ -23,6 +17,14 @@ Package `failure` is an error handling library for Go with readable stack traces
 - [Stack frame formatting](#stack-frame-formatting)
 - [Build](#build)
 - [Benchmarks](#benchmarks)
+
+Package features:
+
+- Wrap an error multiple times without duplicating the stack trace
+- Wrap errors using defer
+- Customize stack trace formatting
+- Method to get the stack trace from an error
+- Method to serialize the stack trace into a string
 
 ## Problem
 

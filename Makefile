@@ -5,14 +5,14 @@ lint: ## Run static tests
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
 
 test: ## Run unit tests
-	go run github.com/rakyll/gotest@latest -v $(go list ./... | grep -v /examples/)
+	go test -v $$(go list ./... | grep -v /examples/)
 
 race: ## Run race tests
-	go run github.com/rakyll/gotest@latest -race -v ./...
+	go test -race -v ./...
 
 coverage: ## Run coverage test
-	go run github.com/rakyll/gotest@latest -coverprofile=coverage.txt
-	go run github.com/boumenot/gocover-cobertura@latest < coverage.txt > coverage.xml
+	go test -coverprofile=coverage.txt ./...
+	go run github.com/t-yuki/gocover-cobertura@latest < coverage.txt > coverage.xml
 
 audit: ## Find vulnerabilities
 	go list -json -m all | go run github.com/sonatype-nexus-community/nancy@latest sleuth
